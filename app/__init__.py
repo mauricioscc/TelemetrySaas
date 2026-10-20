@@ -67,8 +67,12 @@ def register_error_handlers(app: Flask) -> None:
 def register_blueprints(app: Flask) -> None:
     """Registra todos os Blueprints da aplicação."""
     from app.controllers.health_ctrl import health_bp
+    from app.controllers.ingest_ctrl import telemetry_bp
+    from app.controllers.dashboard_ctrl import dashboard_bp
 
     app.register_blueprint(health_bp)
+    app.register_blueprint(telemetry_bp)
+    app.register_blueprint(dashboard_bp)
 
 
 def create_app(config_name: Optional[str] = None) -> Flask:

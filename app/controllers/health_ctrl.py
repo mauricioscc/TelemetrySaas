@@ -12,7 +12,9 @@ def api_index():
         "service": "Automotive Telemetry SaaS API",
         "version": "1.0.0",
         "status": "online",
-        "documentation": "/api/v1/health",
+        "dashboard": "/dashboard",
+        "telemetry_endpoint": "/api/v1/telemetry",
+        "health_check": "/api/v1/health",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }), 200
 

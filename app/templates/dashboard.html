@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apex Telemetry SaaS // Live Engine Cluster</title>
+  <!-- Google Fonts: Orbitron (Display/Numbers) & Rajdhani (Racing Tech) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-main: #080a0f;
+      --bg-panel: rgba(16, 21, 30, 0.85);
+      --border-panel: rgba(0, 240, 255, 0.15);
+      --border-glow: rgba(0, 240, 255, 0.4);
+      --accent-cyan: #00f0ff;
+      --accent-cyan-glow: 0 0 20px rgba(0, 240, 255, 0.5);
+      --accent-red: #ff2255;
+      --accent-red-glow: 0 0 20px rgba(255, 34, 85, 0.6);
+      --accent-gold: #ffb703;
+      --accent-green: #00ff88;
+      --text-main: #f0f4fc;
+      --text-muted: #74829c;
+      --font-display: 'Orbitron', monospace;
+      --font-tech: 'Rajdhani', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.08) 0%, transparent 60%),
+        linear-gradient(180deg, #07090e 0%, #0c1017 100%);
+      color: var(--text-main);
+      font-family: var(--font-tech);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* TOP BAR */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      background: rgba(10, 14, 22, 0.95);
+      border-bottom: 1px solid var(--border-panel);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #00f0ff, #ff2255);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+    }
+
+    .brand-logo svg {
+      width: 24px;
+      height: 24px;
+      fill: #ffffff;
+    }
+
+    .brand-text h1 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      letter-spacing: 2px;
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    .brand-text p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      background: rgba(0, 255, 136, 0.1);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      color: var(--accent-green);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 0.4; transform: scale(0.9); }
+    }
+
+    .vehicle-selector-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-panel);
+    }
+
+    .vehicle-selector-wrap label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    select#vehicleSelect {
+      background: transparent;
+      border: none;
+      color: var(--accent-cyan);
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    select#vehicleSelect option {
+      background: #10151e;
+      color: #fff;
+    }
+
+    /* MAIN CONTAINER */
+    main {
+      flex: 1;
+      padding: 24px;
+      max-width: 1500px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* TELEMETRY BANNER */
+    .telemetry-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 12px;
+      padding: 14px 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .banner-car-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .car-tag {
+      background: linear-gradient(90deg, #ff0055, #ff5500);
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .car-name {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      color: #fff;
+    }
+
+    .car-ecu {
+      font-size: 0.95rem;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    .live-clock {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* INSTRUMENT CLUSTER (GAUGES) */
+    .cluster-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1.4fr 1.2fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1024px) {
+      .cluster-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .cluster-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .cluster-card:hover {
+      border-color: var(--border-glow);
+    }
+
+    .card-title {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      align-self: flex-start;
+      margin-bottom: 10px;
+    }
+
+    /* CENTER CONSOLE: SPEED & GEAR */
+    .center-console {
+      background: radial-gradient(circle at 50% 40%, rgba(0, 240, 255, 0.12) 0%, rgba(16, 21, 30, 0.95) 70%);
+      border: 1px solid var(--border-glow);
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+    }
+
+    .gear-box {
+      width: 72px;
+      height: 84px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid var(--accent-cyan);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.3), var(--accent-cyan-glow);
+      margin-bottom: 12px;
+    }
+
+    .gear-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .gear-val {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1;
+    }
+
+    .speed-display {
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    .speed-number {
+      font-family: var(--font-display);
+      font-size: 6rem;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 0.9;
+      letter-spacing: -2px;
+      text-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+    }
+
+    .speed-unit {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      letter-spacing: 3px;
+      color: var(--accent-cyan);
+      margin-top: 4px;
+    }
+
+    .throttle-wrapper {
+      width: 100%;
+      margin-top: 15px;
+    }
+
+    .bar-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .throttle-track {
+      width: 100%;
+      height: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .throttle-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #00f0ff, #00ff88);
+      box-shadow: 0 0 12px rgba(0, 255, 136, 0.8);
+      transition: width 0.1s linear;
+    }
+
+    /* CIRCULAR SVG GAUGES */
+    .gauge-svg-wrap {
+      position: relative;
+      width: 250px;
+      height: 250px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gauge-svg-wrap svg {
+      transform: rotate(-135deg);
+      transform-origin: 50% 50%;
+    }
+
+    .gauge-center-info {
+      position: absolute;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .gauge-primary-val {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .gauge-unit {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    /* REDLINE WARNING */
+    .redline-alert {
+      position: absolute;
+      bottom: 12px;
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      color: var(--accent-red);
+      font-weight: 800;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .redline-alert.active {
+      opacity: 1;
+      animation: blink 0.3s infinite alternate;
+    }
+
+    @keyframes blink {
+      0% { opacity: 0.4; }
+      100% { opacity: 1; text-shadow: var(--accent-red-glow); }
+    }
+
+    /* AUXILIARY METRICS */
+    .aux-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .aux-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .aux-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .aux-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .aux-value {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .aux-value span {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* CHARTS & LIVE LOGS SECTION */
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1024px) {
+      .analytics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chart-legend {
+      display: flex;
+      gap: 16px;
+      font-size: 0.8rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    #telemetryChart {
+      width: 100%;
+      height: 220px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+    }
+
+    /* CONTROLS PANEL */
+    .controls-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .btn-sim {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #00f0ff, #0077ff);
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 15px rgba(0, 240, 255, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .btn-sim:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 240, 255, 0.5);
+    }
+
+    .btn-sim.running {
+      background: linear-gradient(135deg, #ff2255, #aa0022);
+      box-shadow: 0 4px 15px rgba(255, 34, 85, 0.4);
+    }
+
+    .raw-json-box {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: #94a3b8;
+      overflow-y: auto;
+      max-height: 180px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* FOOTER */
+    footer {
+      padding: 14px 28px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>Apex Telemetry SaaS</h1>
+        <p>MongoDB Time-Series Engine Ingestion System</p>
+      </div>
+    </div>
+
+    <div class="header-status">
+      <div class="vehicle-selector-wrap">
+        <label for="vehicleSelect">Veículo:</label>
+        <select id="vehicleSelect">
+          <option value="">Carregando veículos...</option>
+        </select>
+      </div>
+
+      <div class="status-badge" id="telemetryStateBadge">
+        <div class="pulse-dot"></div>
+        <span id="telemetryStateText">AGUARDANDO DADOS</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main>
+    <!-- TOP CAR BANNER -->
+    <div class="telemetry-banner">
+      <div class="banner-car-info">
+        <span class="car-tag" id="vehiclePlateBadge">CARREGANDO</span>
+        <div>
+          <div class="car-name" id="vehicleModelName">VW Golf TSI / Polo Stage 2</div>
+          <div class="car-ecu" id="vehicleEcuProfile">ECU: Aguardando telemetria...</div>
+        </div>
+      </div>
+      <div class="live-clock" id="lastPacketTime">Último pacote: --:--:--</div>
+    </div>
+
+    <!-- MAIN INSTRUMENT CLUSTER -->
+    <div class="cluster-grid">
+      <!-- 1. TACHOMETER (RPM) -->
+      <div class="cluster-card">
+        <div class="card-title">Tachometer // Rotação do Motor</div>
+        
+        <div class="gauge-svg-wrap">
+          <svg width="240" height="240" viewBox="0 0 240 240">
+            <!-- Background Arc (Track) -->
+            <circle cx="120" cy="120" r="90" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="106" stroke-linecap="round"/>
+            <!-- Redline warning arc at the end -->
+            <circle cx="120" cy="120" r="90" fill="none" stroke="rgba(255,34,85,0.25)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="340" stroke-linecap="round"/>
+            <!-- Active Needle Fill -->
+            <circle id="rpmGaugeCircle" cx="120" cy="120" r="90" fill="none" stroke="url(#rpmGradient)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="424" stroke-linecap="round" style="transition: stroke-dashoffset 0.15s ease-out;"/>
+            
+            <defs>
+              <linearGradient id="rpmGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#00f0ff" />
+                <stop offset="70%" stop-color="#ffb703" />
+                <stop offset="100%" stop-color="#ff2255" />
+              </linearGradient>
+            </defs>
+          </svg>
+          
+          <div class="gauge-center-info">
+            <div class="gauge-primary-val" id="rpmValue">0</div>
+            <div class="gauge-unit">RPM x1000</div>
+          </div>
+        </div>
+
+        <div class="redline-alert" id="redlineAlert">
+          ⚠️ CORTE DE GIRO / REDLINE
+        </div>
+      </div>
+
+      <!-- 2. CENTER CONSOLE: GEAR & SPEED -->
+      <div class="cluster-card center-console">
+        <div class="card-title" style="align-self: center;">Transmissão & Velocidade</div>
+
+        <div class="gear-box">
+          <div class="gear-label">GEAR</div>
+          <div class="gear-val" id="gearValue">N</div>
+        </div>
+
+        <div class="speed-display">
+          <div class="speed-number" id="speedValue">0</div>
+          <div class="speed-unit">KM / H</div>
+        </div>
+
+        <div class="throttle-wrapper">
+          <div class="bar-header">
+            <span>Acelerador (TPS)</span>
+            <span id="throttleValue">0%</span>
+          </div>
+          <div class="throttle-track">
+            <div class="throttle-fill" id="throttleFill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. TURBO BOOST MANOMETER -->
+      <div class="cluster-card">
+        <div class="card-title">Boost Pressure // Pressão do Turbo</div>
+
+        <div class="gauge-svg-wrap">
+          <svg width="240" height="240" viewBox="0 0 240 240">
+            <!-- Background Arc -->
+            <circle cx="120" cy="120" r="90" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="106" stroke-linecap="round"/>
+            <!-- Active Boost Arc -->
+            <circle id="boostGaugeCircle" cx="120" cy="120" r="90" fill="none" stroke="url(#boostGradient)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="424" stroke-linecap="round" style="transition: stroke-dashoffset 0.15s ease-out;"/>
+            
+            <defs>
+              <linearGradient id="boostGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#00f0ff" />
+                <stop offset="50%" stop-color="#ffb703" />
+                <stop offset="100%" stop-color="#ff0077" />
+              </linearGradient>
+            </defs>
+          </svg>
+
+          <div class="gauge-center-info">
+            <div class="gauge-primary-val" id="boostValue">+0.00</div>
+            <div class="gauge-unit">BAR</div>
+          </div>
+        </div>
+
+        <div class="aux-label" id="boostStateLabel" style="margin-top: 10px; color: var(--accent-cyan);">VÁCUO / ASPIRADO</div>
+      </div>
+    </div>
+
+    <!-- AUXILIARY PERFORMANCE METRICS -->
+    <div class="aux-grid">
+      <div class="aux-card">
+        <div class="aux-label">Temperatura do Óleo</div>
+        <div class="aux-value" id="oilTempValue">90 <span>°C</span></div>
+      </div>
+      <div class="aux-card">
+        <div class="aux-label">Pico Máximo de RPM</div>
+        <div class="aux-value" id="peakRpmValue">0 <span>RPM</span></div>
+      </div>
+      <div class="aux-card">
+        <div class="aux-label">Velocidade Máxima</div>
+        <div class="aux-value" id="topSpeedValue">0 <span>KM/H</span></div>
+      </div>
+      <div class="aux-card">
+        <div class="aux-label">Pressão Máxima de Turbo</div>
+        <div class="aux-value" id="peakBoostValue">0.00 <span>BAR</span></div>
+      </div>
+    </div>
+
+    <!-- REAL-TIME PERFORMANCE CHART & CONTROLS -->
+    <div class="analytics-grid">
+      <!-- CHART PANEL -->
+      <div class="chart-panel">
+        <div class="chart-header">
+          <div class="card-title">Curva Dinâmica de Aceleração // Tempo Real</div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-color" style="background:#00f0ff;"></div> Velocidade</div>
+            <div class="legend-item"><div class="legend-color" style="background:#ffb703;"></div> RPM / 100</div>
+            <div class="legend-item"><div class="legend-color" style="background:#ff0077;"></div> Turbo (bar*50)</div>
+          </div>
+        </div>
+        <canvas id="telemetryChart"></canvas>
+      </div>
+
+      <!-- CONTROLS & LIVE JSON INSPECTOR -->
+      <div class="controls-panel">
+        <div class="card-title">Simulador no Navegador</div>
+        <p style="font-size:0.85rem; color:var(--text-muted);">
+          Você pode rodar o simulador em Python pelo terminal (<code style="color:var(--accent-cyan);">python scripts/simulator.py</code>) ou ligar o simulador virtual embutido clicando abaixo:
+        </p>
+
+        <button class="btn-sim" id="btnToggleSim">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+          <span id="btnSimText">LIGAR MOTOR VIRTUAL</span>
+        </button>
+
+        <div class="card-title" style="margin-top: 10px;">Payload Ingerido no MongoDB:</div>
+        <div class="raw-json-box" id="rawJsonBox">Aguardando dados de telemetria...</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    Telemetria Automotiva SaaS MVP &bull; Python Flask + MongoDB Time-Series &bull; Antigravity IDE
+  </footer>
+
+  <script>
+    // ESTADO DA APLICAÇÃO
+    let currentVehicleId = "";
+    let pollingInterval = null;
+    let browserSimTimer = null;
+    let isBrowserSimRunning = false;
+    
+    // HISTÓRICO PARA O GRÁFICO
+    const chartHistory = {
+      labels: [],
+      speed: [],
+      rpm: [],
+      boost: []
+    };
+    const MAX_POINTS = 30;
+
+    // ELEMENTOS DOM
+    const vehicleSelect = document.getElementById('vehicleSelect');
+    const telemetryStateBadge = document.getElementById('telemetryStateBadge');
+    const telemetryStateText = document.getElementById('telemetryStateText');
+    const vehiclePlateBadge = document.getElementById('vehiclePlateBadge');
+    const vehicleModelName = document.getElementById('vehicleModelName');
+    const vehicleEcuProfile = document.getElementById('vehicleEcuProfile');
+    const lastPacketTime = document.getElementById('lastPacketTime');
+    
+    const rpmValue = document.getElementById('rpmValue');
+    const rpmGaugeCircle = document.getElementById('rpmGaugeCircle');
+    const redlineAlert = document.getElementById('redlineAlert');
+    
+    const gearValue = document.getElementById('gearValue');
+    const speedValue = document.getElementById('speedValue');
+    const throttleValue = document.getElementById('throttleValue');
+    const throttleFill = document.getElementById('throttleFill');
+
+    const boostValue = document.getElementById('boostValue');
+    const boostGaugeCircle = document.getElementById('boostGaugeCircle');
+    const boostStateLabel = document.getElementById('boostStateLabel');
+
+    const oilTempValue = document.getElementById('oilTempValue');
+    const peakRpmValue = document.getElementById('peakRpmValue');
+    const topSpeedValue = document.getElementById('topSpeedValue');
+    const peakBoostValue = document.getElementById('peakBoostValue');
+
+    const rawJsonBox = document.getElementById('rawJsonBox');
+    const btnToggleSim = document.getElementById('btnToggleSim');
+    const btnSimText = document.getElementById('btnSimText');
+
+    // CONFIGURAÇÃO DOS GAUGES (ARCOS SVG)
+    // Raio = 90. Perímetro = 2 * PI * 90 ≈ 565.48. O arco visível cobre 270 graus (3/4 = ~424).
+    const CIRCLE_CIRCUMFERENCE = 424;
+
+    function setGaugeRpm(rpm) {
+      const maxRpm = 8000;
+      const clamped = Math.max(0, Math.min(rpm, maxRpm));
+      const percentage = clamped / maxRpm;
+      // offset varia de 424 (0%) a 106 (100% de 270 graus)
+      const offset = CIRCLE_CIRCUMFERENCE - (percentage * (CIRCLE_CIRCUMFERENCE - 106));
+      rpmGaugeCircle.style.strokeDashoffset = offset;
+      rpmValue.textContent = Math.round(rpm).toLocaleString();
+
+      if (rpm >= 6200) {
+        redlineAlert.classList.add('active');
+      } else {
+        redlineAlert.classList.remove('active');
+      }
+    }
+
+    function setGaugeBoost(bar) {
+      // Escala de -1.0 a +2.5 bar (total = 3.5 bar)
+      const minBar = -1.0;
+      const maxBar = 2.5;
+      const clamped = Math.max(minBar, Math.min(bar, maxBar));
+      const percentage = (clamped - minBar) / (maxBar - minBar);
+      const offset = CIRCLE_CIRCUMFERENCE - (percentage * (CIRCLE_CIRCUMFERENCE - 106));
+      boostGaugeCircle.style.strokeDashoffset = offset;
+      boostValue.textContent = (bar >= 0 ? "+" : "") + bar.toFixed(2);
+
+      if (bar > 0.1) {
+        boostStateLabel.textContent = "BOOST / SOBREPRESSÃO";
+        boostStateLabel.style.color = "#ff0077";
+      } else {
+        boostStateLabel.textContent = "VÁCUO / ASPIRADO";
+        boostStateLabel.style.color = "var(--accent-cyan)";
+      }
+    }
+
+    // ATUALIZAR UI COM UM PACOTE DE TELEMETRIA
+    function updateDashboardWithData(data) {
+      if (!data) return;
+
+      const meta = data.metadata || {};
+      const sensors = data.measurements || {};
+
+      // Metadados
+      vehiclePlateBadge.textContent = meta.vehicle_id || "VW-GOLF-R";
+      vehicleModelName.textContent = meta.model || "Golf TSI 2.0";
+      vehicleEcuProfile.textContent = "ECU: " + (meta.ecu_profile || "Stock");
+
+      const ts = data.timestamp ? new Date(data.timestamp) : new Date();
+      lastPacketTime.textContent = "Último pacote: " + ts.toLocaleTimeString();
+
+      // Indicador de Status
+      telemetryStateBadge.style.borderColor = "rgba(0, 255, 136, 0.4)";
+      telemetryStateBadge.style.color = "var(--accent-green)";
+      telemetryStateText.textContent = "TRANSMITINDO AO VIVO";
+
+      // Sensores
+      const rpm = sensors.rpm || 0;
+      const speed = sensors.speed_kmh || 0;
+      const boost = sensors.boost_pressure_bar !== undefined ? sensors.boost_pressure_bar : 0.0;
+      const oilTemp = sensors.oil_temp_c || 90;
+      const gear = sensors.gear || "1";
+      const throttle = sensors.throttle_pct !== undefined ? sensors.throttle_pct : Math.min(100, Math.round((rpm / 6500) * 100));
+
+      setGaugeRpm(rpm);
+      setGaugeBoost(boost);
+
+      speedValue.textContent = Math.round(speed);
+      gearValue.textContent = gear;
+      throttleValue.textContent = Math.round(throttle) + "%";
+      throttleFill.style.width = Math.min(100, Math.max(0, throttle)) + "%";
+
+      oilTempValue.innerHTML = Math.round(oilTemp) + " <span>°C</span>";
+
+      // JSON Raw Inspector
+      rawJsonBox.textContent = JSON.stringify(data, null, 2);
+
+      // Atualiza Gráfico
+      addPointToChart(speed, rpm / 100, boost * 50);
+    }
+
+    // DESENHO DO CANVAS GRÁFICO (Zero dependências externas, fluido e veloz)
+    const canvas = document.getElementById('telemetryChart');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth - 40;
+      canvas.height = 220;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function addPointToChart(speed, rpmNorm, boostNorm) {
+      const now = new Date().toLocaleTimeString();
+      chartHistory.labels.push(now);
+      chartHistory.speed.push(speed);
+      chartHistory.rpm.push(rpmNorm);
+      chartHistory.boost.push(boostNorm);
+
+      if (chartHistory.labels.length > MAX_POINTS) {
+        chartHistory.labels.shift();
+        chartHistory.speed.shift();
+        chartHistory.rpm.shift();
+        chartHistory.boost.shift();
+      }
+
+      drawChart();
+    }
+
+    function drawChart() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Linhas de Grade
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+      ctx.lineWidth = 1;
+      for (let y = 20; y < h; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      if (chartHistory.speed.length < 2) return;
+
+      const step = w / (MAX_POINTS - 1);
+      const maxVal = 250; // Escala máxima
+
+      function drawLine(data, color) {
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        data.forEach((val, i) => {
+          const x = i * step;
+          const y = h - (Math.min(val, maxVal) / maxVal) * (h - 30) - 10;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+
+      drawLine(chartHistory.speed, "#00f0ff");
+      drawLine(chartHistory.rpm, "#ffb703");
+      drawLine(chartHistory.boost, "#ff0077");
+    }
+
+    // BUSCA DE VEÍCULOS E DADOS NO SERVIDOR FLASK
+    async function fetchVehicles() {
+      try {
+        const res = await fetch('/api/v1/telemetry/vehicles');
+        const json = await res.json();
+        if (json.status === 'success' && json.vehicles.length > 0) {
+          vehicleSelect.innerHTML = "";
+          json.vehicles.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v.vehicle_id;
+            opt.textContent = `${v.vehicle_id} - ${v.model}`;
+            vehicleSelect.appendChild(opt);
+          });
+          if (!currentVehicleId) {
+            currentVehicleId = json.vehicles[0].vehicle_id;
+            vehicleSelect.value = currentVehicleId;
+          }
+          fetchVehicleStats(currentVehicleId);
+        } else {
+          vehicleSelect.innerHTML = '<option value="">Nenhum carro no banco</option>';
+        }
+      } catch (err) {
+        console.error("Erro ao listar veículos:", err);
+      }
+    }
+
+    async function fetchVehicleStats(vId) {
+      if (!vId) return;
+      try {
+        const res = await fetch(`/api/v1/telemetry/stats/${vId}`);
+        if (res.ok) {
+          const json = await res.json();
+          const s = json.stats;
+          peakRpmValue.innerHTML = `${Math.round(s.max_rpm || 0)} <span>RPM</span>`;
+          topSpeedValue.innerHTML = `${Math.round(s.max_speed_kmh || 0)} <span>KM/H</span>`;
+          peakBoostValue.innerHTML = `${(s.max_boost_bar || 0).toFixed(2)} <span>BAR</span>`;
+        }
+      } catch (err) {
+        console.error("Erro ao buscar estatísticas:", err);
+      }
+    }
+
+    async function pollLatestTelemetry() {
+      try {
+        const url = currentVehicleId ? `/api/v1/telemetry/latest?vehicle_id=${currentVehicleId}` : '/api/v1/telemetry/latest';
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data) {
+            updateDashboardWithData(json.data);
+          }
+        }
+      } catch (err) {
+        console.warn("Falha no polling da telemetria:", err);
+      }
+    }
+
+    vehicleSelect.addEventListener('change', (e) => {
+      currentVehicleId = e.target.value;
+      if (currentVehicleId) {
+        fetchVehicleStats(currentVehicleId);
+      }
+    });
+
+    // SIMULADOR VIRTUAL EMBUTIDO NO NAVEGADOR
+    // Permite disparar telemetrias reais diretamente para o backend POST /api/v1/telemetry
+    let simRpm = 900;
+    let simSpeed = 0;
+    let simGear = 1;
+    let simThrottle = 0;
+    let simBoost = -0.6;
+    let simOilTemp = 82;
+    let simAccelerating = true;
+
+    async function simulateEngineTick() {
+      if (simAccelerating) {
+        simThrottle = Math.min(100, simThrottle + 12);
+        simRpm += 380;
+        simSpeed += (simGear * 2.2);
+        simBoost = Math.min(1.85, simBoost + 0.35);
+        simOilTemp = Math.min(102, simOilTemp + 0.1);
+
+        if (simRpm >= 6400) {
+          if (simGear < 6) {
+            simGear++;
+            simRpm = 4100;
+            simBoost = 0.2; // Alívio na troca de marcha
+          } else {
+            simAccelerating = false; // Começa desaceleração / frenagem
+          }
+        }
+      } else {
+        simThrottle = Math.max(0, simThrottle - 15);
+        simRpm = Math.max(1200, simRpm - 450);
+        simSpeed = Math.max(20, simSpeed - 4.5);
+        simBoost = Math.max(-0.6, simBoost - 0.4);
+
+        if (simSpeed <= 30) {
+          simGear = 1;
+          simRpm = 950;
+          simAccelerating = true; // Arrancada novamente!
+        }
+      }
+
+      const payload = {
+        timestamp: new Date().toISOString(),
+        metadata: {
+          vehicle_id: "VW-GOLF-R",
+          model: "Golf R MK7.5 2.0 TSI",
+          ecu_profile: "Stage 2+"
+        },
+        measurements: {
+          rpm: Math.round(simRpm),
+          speed_kmh: Math.round(simSpeed * 10) / 10,
+          boost_pressure_bar: Math.round(simBoost * 100) / 100,
+          oil_temp_c: Math.round(simOilTemp * 10) / 10,
+          gear: simGear.toString(),
+          throttle_pct: Math.round(simThrottle)
+        }
+      };
+
+      try {
+        await fetch('/api/v1/telemetry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (e) {
+        console.error("Falha ao enviar telemetria:", e);
+      }
+    }
+
+    btnToggleSim.addEventListener('click', () => {
+      if (!isBrowserSimRunning) {
+        isBrowserSimRunning = true;
+        btnToggleSim.classList.add('running');
+        btnSimText.textContent = "DESLIGAR MOTOR VIRTUAL";
+        browserSimTimer = setInterval(simulateEngineTick, 250); // 4 envios por segundo
+      } else {
+        isBrowserSimRunning = false;
+        btnToggleSim.classList.remove('running');
+        btnSimText.textContent = "LIGAR MOTOR VIRTUAL";
+        clearInterval(browserSimTimer);
+      }
+    });
+
+    // INICIALIZAÇÃO
+    fetchVehicles();
+    pollingInterval = setInterval(pollLatestTelemetry, 350); // Polling a cada 350ms para altíssima fluidez
+    setInterval(fetchVehicles, 5000); // Atualiza lista de carros a cada 5s
+  </script>
+</body>
+</html>
