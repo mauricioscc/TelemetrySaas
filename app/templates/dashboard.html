@@ -102,18 +102,29 @@
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
-    /* SHIFT TONE AUDIO BUTTON */
+    /* SHIFT TONE AUDIO CONTROLS */
+    .audio-control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 3px 6px;
+      border-radius: 24px;
+      border: 1px solid var(--border-panel);
+    }
+
     .btn-audio {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 7px 16px;
+      padding: 6px 14px;
       border-radius: 20px;
       font-family: var(--font-display);
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 700;
       letter-spacing: 1px;
       background: rgba(255, 34, 85, 0.15);
@@ -124,10 +135,58 @@
     }
 
     .btn-audio.active {
-      background: rgba(0, 255, 136, 0.15);
-      border-color: rgba(0, 255, 136, 0.5);
+      background: rgba(0, 255, 136, 0.18);
+      border-color: rgba(0, 255, 136, 0.6);
       color: var(--accent-green);
-      box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
+      box-shadow: 0 0 14px rgba(0, 255, 136, 0.35);
+    }
+
+    .audio-pitch-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 4px;
+    }
+
+    .audio-pitch-wrap label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+
+    select#pitchSelect {
+      background: transparent;
+      border: none;
+      color: var(--accent-cyan);
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    select#pitchSelect option {
+      background: #10151e;
+      color: #fff;
+    }
+
+    .btn-audio-test {
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      color: var(--accent-cyan);
+      border-radius: 14px;
+      padding: 4px 10px;
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-audio-test:hover {
+      background: rgba(0, 240, 255, 0.25);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
     }
 
     .vehicle-selector-wrap {
@@ -409,24 +468,35 @@
       margin-top: 4px;
     }
 
-    .throttle-wrapper {
+    /* DUAL RACING PEDALS (TPS & BRAKE) */
+    .pedals-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
       width: 100%;
       margin-top: 10px;
+    }
+
+    .pedal-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
     .bar-header {
       display: flex;
       justify-content: space-between;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
-      margin-bottom: 6px;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    .throttle-track {
+    .pedal-track {
       width: 100%;
       height: 12px;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 6px;
       overflow: hidden;
       position: relative;
@@ -437,7 +507,15 @@
       width: 0%;
       background: linear-gradient(90deg, #00f0ff, #00ff88);
       box-shadow: 0 0 12px rgba(0, 255, 136, 0.8);
-      transition: width 0.08s linear;
+      transition: width 0.02s linear;
+    }
+
+    .brake-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff7700, #ff2255);
+      box-shadow: 0 0 12px rgba(255, 34, 85, 0.8);
+      transition: width 0.02s linear;
     }
 
     /* CIRCULAR SVG GAUGES */
@@ -502,7 +580,29 @@
       100% { opacity: 1; text-shadow: var(--accent-red-glow); }
     }
 
-    /* AUXILIARY METRICS */
+    /* AUXILIARY METRICS & RACING DYNAMICS */
+    .metrics-section-title {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      margin-top: 4px;
+      margin-bottom: -6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .metrics-section-title::before {
+      content: "";
+      width: 4px;
+      height: 14px;
+      background: var(--accent-cyan);
+      border-radius: 2px;
+      box-shadow: 0 0 8px var(--accent-cyan);
+    }
+
     .aux-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -523,6 +623,24 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+
+    .aux-card.power-card {
+      border-color: rgba(255, 183, 3, 0.35);
+      background: radial-gradient(circle at top right, rgba(255, 183, 3, 0.08) 0%, var(--bg-panel) 70%);
+    }
+
+    .aux-card.torque-card {
+      border-color: rgba(0, 240, 255, 0.35);
+      background: radial-gradient(circle at top right, rgba(0, 240, 255, 0.08) 0%, var(--bg-panel) 70%);
+    }
+
+    .aux-card.gforce-card {
+      border-color: rgba(0, 255, 136, 0.35);
+      background: radial-gradient(circle at top right, rgba(0, 255, 136, 0.08) 0%, var(--bg-panel) 70%);
     }
 
     .aux-label {
@@ -534,15 +652,63 @@
 
     .aux-value {
       font-family: var(--font-display);
-      font-size: 1.5rem;
+      font-size: 1.55rem;
       color: #fff;
       font-weight: 700;
     }
 
     .aux-value span {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       color: var(--text-muted);
       font-weight: 400;
+      margin-left: 2px;
+    }
+
+    .aux-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-top: auto;
+    }
+
+    .aux-sub strong {
+      color: var(--text-main);
+    }
+
+    /* DYNAMIC G-FORCE METER */
+    .gforce-bar-wrap {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 5px;
+      position: relative;
+      margin-top: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .gforce-center-mark {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: rgba(255, 255, 255, 0.5);
+      transform: translateX(-50%);
+      z-index: 2;
+    }
+
+    .gforce-indicator {
+      position: absolute;
+      top: 1px;
+      bottom: 1px;
+      width: 10px;
+      border-radius: 4px;
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+      left: 50%;
+      transform: translateX(-50%);
+      transition: left 0.03s linear;
     }
 
     /* CHARTS & CONTROLS */
@@ -676,11 +842,24 @@
     </div>
 
     <div class="header-actions">
-      <!-- SHIFT TONE AUDIO TOGGLE -->
-      <button class="btn-audio" id="btnAudioToggle" title="Ativar alerta sonoro de troca de marcha">
-        <span id="audioIcon">🔇</span>
-        <span id="audioText">SHIFT TONE: DESLIGADO</span>
-      </button>
+      <!-- SHIFT TONE AUDIO CONTROLS -->
+      <div class="audio-control-group">
+        <button class="btn-audio" id="btnAudioToggle" title="Ativar alerta sonoro de troca de marcha">
+          <span id="audioIcon">🔇</span>
+          <span id="audioText">SHIFT TONE: DESLIGADO</span>
+        </button>
+        <div class="audio-pitch-wrap">
+          <label for="pitchSelect">TOM:</label>
+          <select id="pitchSelect" title="Ajuste o tom do aviso sonoro">
+            <option value="2650" selected>2650 Hz (Agudo FuelTech)</option>
+            <option value="3200">3200 Hz (Ultra Agudo F1)</option>
+            <option value="1900">1900 Hz (Médio)</option>
+          </select>
+        </div>
+        <button class="btn-audio-test" id="btnAudioTest" title="Testar som nos alto-falantes / fone">
+          🔊 TESTAR
+        </button>
+      </div>
 
       <!-- VEHICLE SELECTOR -->
       <div class="vehicle-selector-wrap">
@@ -736,7 +915,7 @@
           <svg width="240" height="240" viewBox="0 0 240 240">
             <circle cx="120" cy="120" r="90" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="106" stroke-linecap="round"/>
             <circle cx="120" cy="120" r="90" fill="none" stroke="rgba(255,34,85,0.25)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="340" stroke-linecap="round"/>
-            <circle id="rpmGaugeCircle" cx="120" cy="120" r="90" fill="none" stroke="url(#rpmGradient)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="424" stroke-linecap="round" style="transition: stroke-dashoffset 0.06s linear;"/>
+            <circle id="rpmGaugeCircle" cx="120" cy="120" r="90" fill="none" stroke="url(#rpmGradient)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="424" stroke-linecap="round" style="transition: stroke-dashoffset 0.02s linear;"/>
             
             <defs>
               <linearGradient id="rpmGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -758,7 +937,7 @@
         </div>
       </div>
 
-      <!-- 2. CENTER CONSOLE: GEAR & SPEED -->
+      <!-- 2. CENTER CONSOLE: GEAR, SPEED & DUAL RACING PEDALS -->
       <div class="cluster-card center-console">
         <div class="card-title" style="align-self: center;">Transmissão & Velocidade</div>
 
@@ -772,13 +951,25 @@
           <div class="speed-unit">KM / H</div>
         </div>
 
-        <div class="throttle-wrapper">
-          <div class="bar-header">
-            <span>Acelerador (TPS)</span>
-            <span id="throttleValue">0%</span>
+        <!-- DUAL PEDALS (ACELERADOR & FREIO) -->
+        <div class="pedals-grid">
+          <div class="pedal-box">
+            <div class="bar-header">
+              <span>Acelerador (TPS)</span>
+              <span id="throttleValue">0%</span>
+            </div>
+            <div class="pedal-track">
+              <div class="throttle-fill" id="throttleFill"></div>
+            </div>
           </div>
-          <div class="throttle-track">
-            <div class="throttle-fill" id="throttleFill"></div>
+          <div class="pedal-box">
+            <div class="bar-header">
+              <span>Freio (BRK)</span>
+              <span id="brakeValue">0%</span>
+            </div>
+            <div class="pedal-track">
+              <div class="brake-fill" id="brakeFill"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -790,7 +981,7 @@
         <div class="gauge-svg-wrap">
           <svg width="240" height="240" viewBox="0 0 240 240">
             <circle cx="120" cy="120" r="90" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="106" stroke-linecap="round"/>
-            <circle id="boostGaugeCircle" cx="120" cy="120" r="90" fill="none" stroke="url(#boostGradient)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="424" stroke-linecap="round" style="transition: stroke-dashoffset 0.06s linear;"/>
+            <circle id="boostGaugeCircle" cx="120" cy="120" r="90" fill="none" stroke="url(#boostGradient)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="424" stroke-linecap="round" style="transition: stroke-dashoffset 0.02s linear;"/>
             
             <defs>
               <linearGradient id="boostGradient" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -811,12 +1002,44 @@
       </div>
     </div>
 
-    <!-- AUXILIARY PERFORMANCE METRICS -->
+    <!-- SEÇÃO 1: TELEMETRIA FÍSICA AO VIVO (FUELTECH ENGINE DYNAMICS) -->
+    <div class="metrics-section-title">DINÂMICA DE PISTA & FÍSICA DO MOTOR (AO VIVO)</div>
     <div class="aux-grid">
+      <!-- 1. POTÊNCIA -->
+      <div class="aux-card power-card">
+        <div class="aux-label">Potência Líquida</div>
+        <div class="aux-value" id="powerValue">0 <span>CV</span></div>
+        <div class="aux-sub">Pico: <strong id="peakPowerCard">0 CV</strong></div>
+      </div>
+
+      <!-- 2. TORQUE -->
+      <div class="aux-card torque-card">
+        <div class="aux-label">Torque do Motor</div>
+        <div class="aux-value" id="torqueValue">0.0 <span>Nm</span></div>
+        <div class="aux-sub">Pico: <strong id="peakTorqueCard">0.0 Nm</strong></div>
+      </div>
+
+      <!-- 3. FORÇA G LATERAL -->
+      <div class="aux-card gforce-card">
+        <div class="aux-label">Aceleração Lateral (G-Force)</div>
+        <div class="aux-value" id="gForceValue">0.00 <span>G</span></div>
+        <div class="gforce-bar-wrap" title="Indicador de balanço de gravidade lateral">
+          <div class="gforce-center-mark"></div>
+          <div class="gforce-indicator" id="gForceIndicator"></div>
+        </div>
+      </div>
+
+      <!-- 4. TEMPERATURA DO ÓLEO -->
       <div class="aux-card">
         <div class="aux-label">Temperatura do Óleo</div>
         <div class="aux-value" id="oilTempValue">90 <span>°C</span></div>
+        <div class="aux-sub">Normal: 85 - 110 °C</div>
       </div>
+    </div>
+
+    <!-- SEÇÃO 2: RECORDES DA SESSÃO -->
+    <div class="metrics-section-title">RECORDES & PICOS DA SESSÃO</div>
+    <div class="aux-grid">
       <div class="aux-card">
         <div class="aux-label">Pico Máximo de RPM</div>
         <div class="aux-value" id="peakRpmValue">0 <span>RPM</span></div>
@@ -828,6 +1051,10 @@
       <div class="aux-card">
         <div class="aux-label">Pressão Máxima de Turbo</div>
         <div class="aux-value" id="peakBoostValue">0.00 <span>BAR</span></div>
+      </div>
+      <div class="aux-card">
+        <div class="aux-label">Potência Máxima Registrada</div>
+        <div class="aux-value" id="peakPowerValue">0 <span>CV</span></div>
       </div>
     </div>
 
@@ -878,6 +1105,10 @@
     let isAudioEnabled = false;
     let audioCtx = null;
     let hasPlayedBeepForCurrentRev = false;
+    let activeShiftPitch = 2650; // Agudo padrão FuelTech (2650 Hz)
+    let lastJsonUpdateTime = 0;
+    let sessionPeakPower = 0;
+    let sessionPeakTorque = 0;
 
     // CONFIGURAÇÃO DOS GAUGES
     const CIRCLE_CIRCUMFERENCE = 424;
@@ -904,15 +1135,26 @@
     const speedValue = document.getElementById('speedValue');
     const throttleValue = document.getElementById('throttleValue');
     const throttleFill = document.getElementById('throttleFill');
+    const brakeValue = document.getElementById('brakeValue');
+    const brakeFill = document.getElementById('brakeFill');
 
     const boostValue = document.getElementById('boostValue');
     const boostGaugeCircle = document.getElementById('boostGaugeCircle');
     const boostStateLabel = document.getElementById('boostStateLabel');
 
+    // MÉTRICAS DE DINÂMICA DE PISTA & PICOS
+    const powerValue = document.getElementById('powerValue');
+    const peakPowerCard = document.getElementById('peakPowerCard');
+    const torqueValue = document.getElementById('torqueValue');
+    const peakTorqueCard = document.getElementById('peakTorqueCard');
+    const gForceValue = document.getElementById('gForceValue');
+    const gForceIndicator = document.getElementById('gForceIndicator');
     const oilTempValue = document.getElementById('oilTempValue');
+
     const peakRpmValue = document.getElementById('peakRpmValue');
     const topSpeedValue = document.getElementById('topSpeedValue');
     const peakBoostValue = document.getElementById('peakBoostValue');
+    const peakPowerValue = document.getElementById('peakPowerValue');
 
     const rawJsonBox = document.getElementById('rawJsonBox');
     const btnToggleSim = document.getElementById('btnToggleSim');
@@ -921,6 +1163,8 @@
     const btnAudioToggle = document.getElementById('btnAudioToggle');
     const audioIcon = document.getElementById('audioIcon');
     const audioText = document.getElementById('audioText');
+    const pitchSelect = document.getElementById('pitchSelect');
+    const btnAudioTest = document.getElementById('btnAudioTest');
 
     const leds = [
       document.getElementById('led1'),
@@ -933,7 +1177,7 @@
     ];
 
     // =========================================================================
-    // SÍNTESE DE ÁUDIO RACING (WEB AUDIO API) - SHIFT TONE BEEP
+    // SÍNTESE DE ÁUDIO RACING (WEB AUDIO API) - HIGH PITCH SHIFT TONE
     // =========================================================================
     function initAudio() {
       if (!audioCtx) {
@@ -944,19 +1188,20 @@
       }
     }
 
-    function playShiftBeep(freq = 1450, duration = 0.09) {
+    function playShiftBeep(freq = activeShiftPitch, duration = 0.065) {
       if (!isAudioEnabled || !audioCtx) return;
       try {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
 
+        // Onda senoidal pura em frequência aguda para corte nítido e esportivo
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
 
-        // Envelope com ataque rápido e decaimento limpo estilo F1
-        gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        // Envelope esportivo com ataque de 4ms e decaimento exponencial rápido
+        gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.32, audioCtx.currentTime + 0.004);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
 
         osc.connect(gain);
         gain.connect(audioCtx.destination);
@@ -964,7 +1209,7 @@
         osc.start();
         osc.stop(audioCtx.currentTime + duration);
       } catch (err) {
-        console.warn("Erro ao emitir áudio:", err);
+        console.warn("Erro ao emitir shift beep:", err);
       }
     }
 
@@ -975,8 +1220,8 @@
         btnAudioToggle.classList.add('active');
         audioIcon.textContent = "🔊";
         audioText.textContent = "SHIFT TONE: ATIVADO";
-        // Bip de confirmação
-        playShiftBeep(1200, 0.05);
+        // Bip agudo de confirmação
+        playShiftBeep(activeShiftPitch, 0.05);
       } else {
         btnAudioToggle.classList.remove('active');
         audioIcon.textContent = "🔇";
@@ -984,11 +1229,27 @@
       }
     });
 
+    pitchSelect.addEventListener('change', (e) => {
+      activeShiftPitch = parseInt(e.target.value, 10) || 2650;
+      if (isAudioEnabled) {
+        playShiftBeep(activeShiftPitch, 0.05);
+      }
+    });
+
+    btnAudioTest.addEventListener('click', () => {
+      initAudio();
+      const prevAudioState = isAudioEnabled;
+      isAudioEnabled = true;
+      playShiftBeep(activeShiftPitch, 0.07);
+      if (!prevAudioState) {
+        isAudioEnabled = false;
+      }
+    });
+
     // =========================================================================
     // ATUALIZAÇÃO VISUAL DOS MOSTRADORES & SHIFT LIGHTS
     // =========================================================================
     function updateShiftLights(rpmRatio) {
-      // 7 LEDs com acionamento progressivo entre 60% e 94% do limite
       const thresholds = [0.60, 0.68, 0.76, 0.82, 0.88, 0.92, 0.95];
       leds.forEach((led, idx) => {
         if (rpmRatio >= thresholds[idx]) {
@@ -1012,19 +1273,18 @@
 
       updateShiftLights(percentage);
 
-      // Alerta de Redline e Som de Shift Tone
+      // Alerta de Redline e Som de Shift Tone Agudo
       if (rpm >= activeShiftRpm) {
         redlineAlert.classList.add('active');
         rpmCard.classList.add('redline-border');
 
         if (!hasPlayedBeepForCurrentRev) {
-          playShiftBeep(1500, 0.08);
+          playShiftBeep(activeShiftPitch, 0.065);
           hasPlayedBeepForCurrentRev = true;
         }
       } else {
         redlineAlert.classList.remove('active');
         rpmCard.classList.remove('redline-border');
-        // Reseta o gatilho sonoro assim que a rotação cai para a próxima marcha
         if (rpm <= activeShiftRpm * 0.88) {
           hasPlayedBeepForCurrentRev = false;
         }
@@ -1050,7 +1310,7 @@
     }
 
     // =========================================================================
-    // PROCESSAMENTO DE PACOTE DE TELEMETRIA
+    // PROCESSAMENTO DE TELEMETRIA EM TEMPO REAL COM ZERO DELAY
     // =========================================================================
     function updateDashboardWithData(data) {
       if (!data) return;
@@ -1076,18 +1336,54 @@
       const oilTemp = sensors.oil_temp_c || 90;
       const gear = sensors.gear || "N";
       const throttle = sensors.throttle_pct !== undefined ? sensors.throttle_pct : 0;
+      const brake = sensors.brake_pct !== undefined ? sensors.brake_pct : 0;
+      const power = sensors.power_hp !== undefined ? sensors.power_hp : 0;
+      const torque = sensors.torque_nm !== undefined ? sensors.torque_nm : 0;
+      const gForce = sensors.g_force_lat !== undefined ? sensors.g_force_lat : 0;
 
+      // Mostradores Circulares Instantâneos
       setGaugeRpm(rpm, maxRpm);
       setGaugeBoost(boost);
 
+      // Console Central
       speedValue.textContent = Math.round(speed);
       gearValue.textContent = gear;
+      
+      // Pedais Duplos (TPS & Freio)
       throttleValue.textContent = Math.round(throttle) + "%";
       throttleFill.style.width = Math.min(100, Math.max(0, throttle)) + "%";
 
+      brakeValue.textContent = Math.round(brake) + "%";
+      brakeFill.style.width = Math.min(100, Math.max(0, brake)) + "%";
+
+      // Métricas Físicas de Corrida
+      powerValue.innerHTML = `${Math.round(power)} <span>CV</span>`;
+      if (power > sessionPeakPower) {
+        sessionPeakPower = power;
+        peakPowerCard.textContent = `${Math.round(sessionPeakPower)} CV`;
+        peakPowerValue.innerHTML = `${Math.round(sessionPeakPower)} <span>CV</span>`;
+      }
+
+      torqueValue.innerHTML = `${torque.toFixed(1)} <span>Nm</span>`;
+      if (torque > sessionPeakTorque) {
+        sessionPeakTorque = torque;
+        peakTorqueCard.textContent = `${sessionPeakTorque.toFixed(1)} Nm`;
+      }
+
+      // Medidor de Gravidade Lateral (-2.0G a +2.0G mapeado de 5% a 95%)
+      gForceValue.innerHTML = `${gForce >= 0 ? "+" : ""}${gForce.toFixed(2)} <span>G</span>`;
+      const clampedG = Math.max(-2.0, Math.min(2.0, gForce));
+      const gPercent = 50 + (clampedG / 2.0) * 45;
+      gForceIndicator.style.left = `${gPercent}%`;
+
       oilTempValue.innerHTML = Math.round(oilTemp) + " <span>°C</span>";
 
-      rawJsonBox.textContent = JSON.stringify(data, null, 2);
+      // Throttling de atualização do JSON bruto para evitar travamentos de DOM
+      const now = performance.now();
+      if (now - lastJsonUpdateTime > 400) {
+        rawJsonBox.textContent = JSON.stringify(data, null, 2);
+        lastJsonUpdateTime = now;
+      }
 
       addPointToChart(speed, rpm / 100, boost * 50);
     }
@@ -1232,6 +1528,13 @@
           peakRpmValue.innerHTML = `${Math.round(s.max_rpm || 0)} <span>RPM</span>`;
           topSpeedValue.innerHTML = `${Math.round(s.max_speed_kmh || 0)} <span>KM/H</span>`;
           peakBoostValue.innerHTML = `${(s.max_boost_bar || 0).toFixed(2)} <span>BAR</span>`;
+          if (s.max_power_hp) {
+            peakPowerValue.innerHTML = `${Math.round(s.max_power_hp)} <span>CV</span>`;
+            peakPowerCard.textContent = `${Math.round(s.max_power_hp)} CV`;
+          }
+          if (s.max_torque_nm) {
+            peakTorqueCard.textContent = `${s.max_torque_nm.toFixed(1)} Nm`;
+          }
         }
       } catch (err) {
         console.error("Erro ao buscar estatísticas:", err);
@@ -1241,25 +1544,29 @@
     vehicleSelect.addEventListener('change', (e) => {
       currentVehicleId = e.target.value;
       fetchVehicleStats(currentVehicleId);
-      connectSseStream(); // Re-filtra o stream para o carro escolhido
+      connectSseStream();
     });
 
-    // SIMULADOR VIRTUAL EMBUTIDO
+    // =========================================================================
+    // SIMULADOR VIRTUAL EMBUTIDO (COM DADOS AVANÇADOS DE CORRIDA)
+    // =========================================================================
     let simRpm = 950;
     let simSpeed = 0;
     let simGear = 1;
     let simThrottle = 0;
+    let simBrake = 0;
     let simBoost = -0.6;
     let simOilTemp = 82;
     let simAccelerating = true;
 
     async function simulateEngineTick() {
       if (simAccelerating) {
-        simThrottle = Math.min(100, simThrottle + 12);
+        simThrottle = Math.min(100, simThrottle + 14);
+        simBrake = 0;
         simRpm += 380;
-        simSpeed += (simGear * 2.2);
+        simSpeed += (simGear * 2.3);
         simBoost = Math.min(1.85, simBoost + 0.35);
-        simOilTemp = Math.min(102, simOilTemp + 0.1);
+        simOilTemp = Math.min(102, simOilTemp + 0.05);
 
         if (simRpm >= 6400) {
           if (simGear < 6) {
@@ -1271,24 +1578,31 @@
           }
         }
       } else {
-        simThrottle = Math.max(0, simThrottle - 15);
-        simRpm = Math.max(1200, simRpm - 450);
-        simSpeed = Math.max(20, simSpeed - 4.5);
+        simThrottle = 0;
+        simBrake = Math.min(100, simBrake + 18);
+        simRpm = Math.max(1200, simRpm - 480);
+        simSpeed = Math.max(15, simSpeed - 5.5);
         simBoost = Math.max(-0.6, simBoost - 0.4);
 
-        if (simSpeed <= 30) {
+        if (simSpeed <= 25) {
           simGear = 1;
           simRpm = 950;
           simAccelerating = true;
+          simBrake = 0;
         }
       }
+
+      // Fórmulas físicas para simulação realista de CV, Torque e Força G
+      const simPower = Math.max(12, Math.round((simRpm / 6000) * (simThrottle / 100) * 380 + (Math.max(0, simBoost) * 65)));
+      const simTorque = Math.max(25, Math.round(((simPower * 7120) / Math.max(1000, simRpm)) * 10) / 10);
+      const simGForce = Math.round(Math.sin(Date.now() / 1200) * (simSpeed / 100) * 1.1 * 100) / 100;
 
       const payload = {
         timestamp: new Date().toISOString(),
         metadata: {
           vehicle_id: "VW-GOLF-R",
           model: "Golf R MK7.5 2.0 TSI",
-          ecu_profile: "Stage 2+"
+          ecu_profile: "Stage 2+ FuelTech"
         },
         measurements: {
           rpm: Math.round(simRpm),
@@ -1297,7 +1611,11 @@
           boost_pressure_bar: Math.round(simBoost * 100) / 100,
           oil_temp_c: Math.round(simOilTemp * 10) / 10,
           gear: simGear.toString(),
-          throttle_pct: Math.round(simThrottle)
+          throttle_pct: Math.round(simThrottle),
+          brake_pct: Math.round(simBrake),
+          power_hp: simPower,
+          torque_nm: simTorque,
+          g_force_lat: simGForce
         }
       };
 

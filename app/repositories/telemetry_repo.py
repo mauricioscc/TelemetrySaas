@@ -198,6 +198,8 @@ class TelemetryRepository:
                         "max_speed_kmh": {"$max": "$measurements.speed_kmh"},
                         "max_boost_bar": {"$max": "$measurements.boost_pressure_bar"},
                         "max_oil_temp_c": {"$max": "$measurements.oil_temp_c"},
+                        "max_power_hp": {"$max": "$measurements.power_hp"},
+                        "max_torque_nm": {"$max": "$measurements.torque_nm"},
                         "avg_speed_kmh": {"$avg": "$measurements.speed_kmh"},
                         "total_samples": {"$sum": 1},
                         "first_seen": {"$min": "$timestamp"},
@@ -216,6 +218,8 @@ class TelemetryRepository:
                 "max_speed_kmh": round(float(stats.get("max_speed_kmh") or 0), 1),
                 "max_boost_bar": round(float(stats.get("max_boost_bar") or 0), 2),
                 "max_oil_temp_c": round(float(stats.get("max_oil_temp_c") or 0), 1),
+                "max_power_hp": round(float(stats.get("max_power_hp") or 0), 0),
+                "max_torque_nm": round(float(stats.get("max_torque_nm") or 0), 1),
                 "avg_speed_kmh": round(float(stats.get("avg_speed_kmh") or 0), 1),
                 "total_samples": stats.get("total_samples", 0),
             }

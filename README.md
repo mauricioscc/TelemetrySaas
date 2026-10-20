@@ -164,7 +164,7 @@ Em um segundo terminal, rode:
   "metadata": {
     "vehicle_id": "FORZA-PILOT-01",
     "model": "Porsche 911 GT3 RS",
-    "ecu_profile": "Track Setup"
+    "ecu_profile": "FuelTech FT-Dash Sync"
   },
   "measurements": {
     "rpm": 8750,
@@ -173,7 +173,11 @@ Em um segundo terminal, rode:
     "boost_pressure_bar": 0.0,
     "oil_temp_c": 94.0,
     "gear": "5",
-    "throttle_pct": 100.0
+    "throttle_pct": 100.0,
+    "brake_pct": 0.0,
+    "power_hp": 525.0,
+    "torque_nm": 465.0,
+    "g_force_lat": 1.35
   }
 }
 ```
