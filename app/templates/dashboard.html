@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Apex Telemetry SaaS // Live Engine Cluster</title>
-  <!-- Google Fonts: Orbitron (Display/Numbers) & Rajdhani (Racing Tech) -->
+  <title>Apex Telemetry SaaS // Live Engine Cluster & Shift Tone</title>
+  <!-- Google Fonts: Orbitron & Rajdhani -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -12,15 +12,16 @@
   <style>
     :root {
       --bg-main: #080a0f;
-      --bg-panel: rgba(16, 21, 30, 0.85);
+      --bg-panel: rgba(16, 21, 30, 0.88);
       --border-panel: rgba(0, 240, 255, 0.15);
-      --border-glow: rgba(0, 240, 255, 0.4);
+      --border-glow: rgba(0, 240, 255, 0.45);
       --accent-cyan: #00f0ff;
       --accent-cyan-glow: 0 0 20px rgba(0, 240, 255, 0.5);
       --accent-red: #ff2255;
-      --accent-red-glow: 0 0 20px rgba(255, 34, 85, 0.6);
+      --accent-red-glow: 0 0 25px rgba(255, 34, 85, 0.7);
       --accent-gold: #ffb703;
       --accent-green: #00ff88;
+      --accent-blue-shift: #38bdf8;
       --text-main: #f0f4fc;
       --text-muted: #74829c;
       --font-display: 'Orbitron', monospace;
@@ -37,7 +38,7 @@
     body {
       background-color: var(--bg-main);
       background-image: 
-        radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.09) 0%, transparent 60%),
         linear-gradient(180deg, #07090e 0%, #0c1017 100%);
       color: var(--text-main);
       font-family: var(--font-tech);
@@ -52,7 +53,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 28px;
+      padding: 14px 28px;
       background: rgba(10, 14, 22, 0.95);
       border-bottom: 1px solid var(--border-panel);
       backdrop-filter: blur(12px);
@@ -98,39 +99,35 @@
       letter-spacing: 1px;
     }
 
-    .header-status {
+    .header-actions {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 14px;
     }
 
-    .status-badge {
+    /* SHIFT TONE AUDIO BUTTON */
+    .btn-audio {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 14px;
+      padding: 7px 16px;
       border-radius: 20px;
       font-family: var(--font-display);
       font-size: 0.75rem;
+      font-weight: 700;
       letter-spacing: 1px;
-      background: rgba(0, 255, 136, 0.1);
-      border: 1px solid rgba(0, 255, 136, 0.3);
+      background: rgba(255, 34, 85, 0.15);
+      border: 1px solid rgba(255, 34, 85, 0.4);
+      color: var(--accent-red);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-audio.active {
+      background: rgba(0, 255, 136, 0.15);
+      border-color: rgba(0, 255, 136, 0.5);
       color: var(--accent-green);
-    }
-
-    .pulse-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent-green);
-      box-shadow: 0 0 10px var(--accent-green);
-      animation: pulse 1.5s infinite;
-    }
-
-    @keyframes pulse {
-      0% { opacity: 0.4; transform: scale(0.9); }
-      50% { opacity: 1; transform: scale(1.2); }
-      100% { opacity: 0.4; transform: scale(0.9); }
+      box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
     }
 
     .vehicle-selector-wrap {
@@ -164,16 +161,91 @@
       color: #fff;
     }
 
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      background: rgba(0, 255, 136, 0.1);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      color: var(--accent-green);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.25); }
+      100% { opacity: 0.4; transform: scale(0.9); }
+    }
+
     /* MAIN CONTAINER */
     main {
       flex: 1;
-      padding: 24px;
+      padding: 20px 24px;
       max-width: 1500px;
       margin: 0 auto;
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 20px;
+    }
+
+    /* F1 STYLE SHIFT LIGHT BAR */
+    .shift-light-bar {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-panel);
+      padding: 10px 20px;
+      border-radius: 12px;
+    }
+
+    .shift-led {
+      width: 28px;
+      height: 12px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.08s ease;
+    }
+
+    .shift-led.green.on {
+      background: #00ff88;
+      box-shadow: 0 0 12px #00ff88;
+    }
+
+    .shift-led.yellow.on {
+      background: #ffb703;
+      box-shadow: 0 0 12px #ffb703;
+    }
+
+    .shift-led.red.on {
+      background: #ff2255;
+      box-shadow: 0 0 14px #ff2255;
+    }
+
+    .shift-led.blue.on {
+      background: #38bdf8;
+      box-shadow: 0 0 18px #38bdf8;
+      animation: flash-led 0.15s infinite alternate;
+    }
+
+    @keyframes flash-led {
+      0% { opacity: 0.3; }
+      100% { opacity: 1; }
     }
 
     /* TELEMETRY BANNER */
@@ -184,7 +256,7 @@
       background: var(--bg-panel);
       border: 1px solid var(--border-panel);
       border-radius: 12px;
-      padding: 14px 24px;
+      padding: 12px 24px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
 
@@ -207,7 +279,7 @@
 
     .car-name {
       font-family: var(--font-display);
-      font-size: 1.3rem;
+      font-size: 1.25rem;
       color: #fff;
     }
 
@@ -217,13 +289,25 @@
       font-weight: 600;
     }
 
-    .live-clock {
+    .live-meta-badges {
+      display: flex;
+      align-items: center;
+      gap: 14px;
       font-family: var(--font-mono);
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
     }
 
-    /* INSTRUMENT CLUSTER (GAUGES) */
+    .latency-pill {
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    /* INSTRUMENT CLUSTER */
     .cluster-grid {
       display: grid;
       grid-template-columns: 1.2fr 1.4fr 1.2fr;
@@ -248,11 +332,12 @@
       position: relative;
       overflow: hidden;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .cluster-card:hover {
-      border-color: var(--border-glow);
+    .cluster-card.redline-border {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 35px rgba(255, 34, 85, 0.5);
     }
 
     .card-title {
@@ -262,10 +347,10 @@
       letter-spacing: 2px;
       text-transform: uppercase;
       align-self: flex-start;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
-    /* CENTER CONSOLE: SPEED & GEAR */
+    /* CENTER CONSOLE */
     .center-console {
       background: radial-gradient(circle at 50% 40%, rgba(0, 240, 255, 0.12) 0%, rgba(16, 21, 30, 0.95) 70%);
       border: 1px solid var(--border-glow);
@@ -273,9 +358,9 @@
     }
 
     .gear-box {
-      width: 72px;
-      height: 84px;
-      background: rgba(0, 0, 0, 0.6);
+      width: 76px;
+      height: 88px;
+      background: rgba(0, 0, 0, 0.65);
       border: 2px solid var(--accent-cyan);
       border-radius: 12px;
       display: flex;
@@ -283,7 +368,7 @@
       align-items: center;
       justify-content: center;
       box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.3), var(--accent-cyan-glow);
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .gear-label {
@@ -295,7 +380,7 @@
 
     .gear-val {
       font-family: var(--font-display);
-      font-size: 2.8rem;
+      font-size: 3rem;
       font-weight: 900;
       color: #ffffff;
       line-height: 1;
@@ -303,12 +388,12 @@
 
     .speed-display {
       text-align: center;
-      margin: 10px 0;
+      margin: 6px 0;
     }
 
     .speed-number {
       font-family: var(--font-display);
-      font-size: 6rem;
+      font-size: 5.8rem;
       font-weight: 900;
       color: #ffffff;
       line-height: 0.9;
@@ -326,7 +411,7 @@
 
     .throttle-wrapper {
       width: 100%;
-      margin-top: 15px;
+      margin-top: 10px;
     }
 
     .bar-header {
@@ -352,14 +437,14 @@
       width: 0%;
       background: linear-gradient(90deg, #00f0ff, #00ff88);
       box-shadow: 0 0 12px rgba(0, 255, 136, 0.8);
-      transition: width 0.1s linear;
+      transition: width 0.08s linear;
     }
 
     /* CIRCULAR SVG GAUGES */
     .gauge-svg-wrap {
       position: relative;
-      width: 250px;
-      height: 250px;
+      width: 240px;
+      height: 240px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -392,7 +477,6 @@
       margin-top: 4px;
     }
 
-    /* REDLINE WARNING */
     .redline-alert {
       position: absolute;
       bottom: 12px;
@@ -402,7 +486,7 @@
       color: var(--accent-red);
       font-weight: 800;
       opacity: 0;
-      transition: opacity 0.2s ease;
+      transition: opacity 0.15s ease;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -410,11 +494,11 @@
 
     .redline-alert.active {
       opacity: 1;
-      animation: blink 0.3s infinite alternate;
+      animation: blink 0.25s infinite alternate;
     }
 
     @keyframes blink {
-      0% { opacity: 0.4; }
+      0% { opacity: 0.3; }
       100% { opacity: 1; text-shadow: var(--accent-red-glow); }
     }
 
@@ -461,7 +545,7 @@
       font-weight: 400;
     }
 
-    /* CHARTS & LIVE LOGS SECTION */
+    /* CHARTS & CONTROLS */
     .analytics-grid {
       display: grid;
       grid-template-columns: 2fr 1fr;
@@ -511,11 +595,10 @@
     #telemetryChart {
       width: 100%;
       height: 220px;
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(0, 0, 0, 0.35);
       border-radius: 8px;
     }
 
-    /* CONTROLS PANEL */
     .controls-panel {
       background: var(--bg-panel);
       border: 1px solid var(--border-panel);
@@ -523,17 +606,17 @@
       padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .btn-sim {
       width: 100%;
-      padding: 14px;
+      padding: 12px;
       background: linear-gradient(135deg, #00f0ff, #0077ff);
       border: none;
       border-radius: 8px;
       font-family: var(--font-display);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       color: #fff;
       font-weight: 700;
       letter-spacing: 1px;
@@ -546,11 +629,6 @@
       transition: all 0.2s ease;
     }
 
-    .btn-sim:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 240, 255, 0.5);
-    }
-
     .btn-sim.running {
       background: linear-gradient(135deg, #ff2255, #aa0022);
       box-shadow: 0 4px 15px rgba(255, 34, 85, 0.4);
@@ -558,20 +636,19 @@
 
     .raw-json-box {
       flex: 1;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.55);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 8px;
       padding: 12px;
       font-family: var(--font-mono);
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: #94a3b8;
       overflow-y: auto;
-      max-height: 180px;
+      max-height: 170px;
       white-space: pre-wrap;
       word-break: break-all;
     }
 
-    /* FOOTER */
     footer {
       padding: 14px 28px;
       text-align: center;
@@ -594,11 +671,18 @@
       </div>
       <div class="brand-text">
         <h1>Apex Telemetry SaaS</h1>
-        <p>MongoDB Time-Series Engine Ingestion System</p>
+        <p>Ultra Low-Latency Engine Stream & Shift Tone</p>
       </div>
     </div>
 
-    <div class="header-status">
+    <div class="header-actions">
+      <!-- SHIFT TONE AUDIO TOGGLE -->
+      <button class="btn-audio" id="btnAudioToggle" title="Ativar alerta sonoro de troca de marcha">
+        <span id="audioIcon">🔇</span>
+        <span id="audioText">SHIFT TONE: DESLIGADO</span>
+      </button>
+
+      <!-- VEHICLE SELECTOR -->
       <div class="vehicle-selector-wrap">
         <label for="vehicleSelect">Veículo:</label>
         <select id="vehicleSelect">
@@ -606,41 +690,53 @@
         </select>
       </div>
 
+      <!-- STREAMING STATUS BADGE -->
       <div class="status-badge" id="telemetryStateBadge">
         <div class="pulse-dot"></div>
-        <span id="telemetryStateText">AGUARDANDO DADOS</span>
+        <span id="telemetryStateText">STREAMING AO VIVO</span>
       </div>
     </div>
   </header>
 
   <!-- MAIN -->
   <main>
-    <!-- TOP CAR BANNER -->
+    <!-- F1 STYLE PROGRESSIVE SHIFT LIGHTS -->
+    <div class="shift-light-bar" id="shiftLightBar">
+      <div class="shift-led green" id="led1"></div>
+      <div class="shift-led green" id="led2"></div>
+      <div class="shift-led yellow" id="led3"></div>
+      <div class="shift-led yellow" id="led4"></div>
+      <div class="shift-led red" id="led5"></div>
+      <div class="shift-led red" id="led6"></div>
+      <div class="shift-led blue" id="led7"></div>
+    </div>
+
+    <!-- CAR BANNER -->
     <div class="telemetry-banner">
       <div class="banner-car-info">
-        <span class="car-tag" id="vehiclePlateBadge">CARREGANDO</span>
+        <span class="car-tag" id="vehiclePlateBadge">AGUARDANDO</span>
         <div>
-          <div class="car-name" id="vehicleModelName">VW Golf TSI / Polo Stage 2</div>
-          <div class="car-ecu" id="vehicleEcuProfile">ECU: Aguardando telemetria...</div>
+          <div class="car-name" id="vehicleModelName">Carregando telemetria...</div>
+          <div class="car-ecu" id="vehicleEcuProfile">ECU: Aguardando sinal</div>
         </div>
       </div>
-      <div class="live-clock" id="lastPacketTime">Último pacote: --:--:--</div>
+      <div class="live-meta-badges">
+        <span class="latency-pill" id="latencyBadge">⚡ STREAMING (SSE)</span>
+        <span id="lastPacketTime">Último pacote: --:--:--</span>
+      </div>
     </div>
 
     <!-- MAIN INSTRUMENT CLUSTER -->
     <div class="cluster-grid">
       <!-- 1. TACHOMETER (RPM) -->
-      <div class="cluster-card">
+      <div class="cluster-card" id="rpmCard">
         <div class="card-title">Tachometer // Rotação do Motor</div>
         
         <div class="gauge-svg-wrap">
           <svg width="240" height="240" viewBox="0 0 240 240">
-            <!-- Background Arc (Track) -->
             <circle cx="120" cy="120" r="90" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="106" stroke-linecap="round"/>
-            <!-- Redline warning arc at the end -->
             <circle cx="120" cy="120" r="90" fill="none" stroke="rgba(255,34,85,0.25)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="340" stroke-linecap="round"/>
-            <!-- Active Needle Fill -->
-            <circle id="rpmGaugeCircle" cx="120" cy="120" r="90" fill="none" stroke="url(#rpmGradient)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="424" stroke-linecap="round" style="transition: stroke-dashoffset 0.15s ease-out;"/>
+            <circle id="rpmGaugeCircle" cx="120" cy="120" r="90" fill="none" stroke="url(#rpmGradient)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="424" stroke-linecap="round" style="transition: stroke-dashoffset 0.06s linear;"/>
             
             <defs>
               <linearGradient id="rpmGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -653,12 +749,12 @@
           
           <div class="gauge-center-info">
             <div class="gauge-primary-val" id="rpmValue">0</div>
-            <div class="gauge-unit">RPM x1000</div>
+            <div class="gauge-unit" id="rpmRedlineLabel">RPM (Corte: 6.500)</div>
           </div>
         </div>
 
         <div class="redline-alert" id="redlineAlert">
-          ⚠️ CORTE DE GIRO / REDLINE
+          🔊 SHIFT NOW / CORTE DE GIRO!
         </div>
       </div>
 
@@ -693,10 +789,8 @@
 
         <div class="gauge-svg-wrap">
           <svg width="240" height="240" viewBox="0 0 240 240">
-            <!-- Background Arc -->
             <circle cx="120" cy="120" r="90" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="106" stroke-linecap="round"/>
-            <!-- Active Boost Arc -->
-            <circle id="boostGaugeCircle" cx="120" cy="120" r="90" fill="none" stroke="url(#boostGradient)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="424" stroke-linecap="round" style="transition: stroke-dashoffset 0.15s ease-out;"/>
+            <circle id="boostGaugeCircle" cx="120" cy="120" r="90" fill="none" stroke="url(#boostGradient)" stroke-width="14" stroke-dasharray="424" stroke-dashoffset="424" stroke-linecap="round" style="transition: stroke-dashoffset 0.06s linear;"/>
             
             <defs>
               <linearGradient id="boostGradient" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -737,14 +831,13 @@
       </div>
     </div>
 
-    <!-- REAL-TIME PERFORMANCE CHART & CONTROLS -->
+    <!-- REAL-TIME CHART & CONTROLS -->
     <div class="analytics-grid">
-      <!-- CHART PANEL -->
       <div class="chart-panel">
         <div class="chart-header">
-          <div class="card-title">Curva Dinâmica de Aceleração // Tempo Real</div>
+          <div class="card-title">Curva de Telemetria Contínua // Streaming 60 FPS</div>
           <div class="chart-legend">
-            <div class="legend-item"><div class="legend-color" style="background:#00f0ff;"></div> Velocidade</div>
+            <div class="legend-item"><div class="legend-color" style="background:#00f0ff;"></div> Velocidade (km/h)</div>
             <div class="legend-item"><div class="legend-color" style="background:#ffb703;"></div> RPM / 100</div>
             <div class="legend-item"><div class="legend-color" style="background:#ff0077;"></div> Turbo (bar*50)</div>
           </div>
@@ -752,11 +845,10 @@
         <canvas id="telemetryChart"></canvas>
       </div>
 
-      <!-- CONTROLS & LIVE JSON INSPECTOR -->
       <div class="controls-panel">
-        <div class="card-title">Simulador no Navegador</div>
+        <div class="card-title">Simulador & Inspetor</div>
         <p style="font-size:0.85rem; color:var(--text-muted);">
-          Você pode rodar o simulador em Python pelo terminal (<code style="color:var(--accent-cyan);">python scripts/simulator.py</code>) ou ligar o simulador virtual embutido clicando abaixo:
+          Conectado via <strong>SSE Instantâneo</strong> ao seu backend Flask e MongoDB Atlas.
         </p>
 
         <button class="btn-sim" id="btnToggleSim">
@@ -766,32 +858,31 @@
           <span id="btnSimText">LIGAR MOTOR VIRTUAL</span>
         </button>
 
-        <div class="card-title" style="margin-top: 10px;">Payload Ingerido no MongoDB:</div>
-        <div class="raw-json-box" id="rawJsonBox">Aguardando dados de telemetria...</div>
+        <div class="card-title" style="margin-top: 6px;">Pacote BSON em Streaming:</div>
+        <div class="raw-json-box" id="rawJsonBox">Aguardando telemetria...</div>
       </div>
     </div>
   </main>
 
   <!-- FOOTER -->
   <footer>
-    Telemetria Automotiva SaaS MVP &bull; Python Flask + MongoDB Time-Series &bull; Antigravity IDE
+    Apex Telemetry SaaS &bull; High Frequency Time-Series &bull; Ultra-Low Latency Streaming &bull; Antigravity IDE
   </footer>
 
   <script>
     // ESTADO DA APLICAÇÃO
     let currentVehicleId = "";
-    let pollingInterval = null;
+    let sseSource = null;
     let browserSimTimer = null;
     let isBrowserSimRunning = false;
-    
-    // HISTÓRICO PARA O GRÁFICO
-    const chartHistory = {
-      labels: [],
-      speed: [],
-      rpm: [],
-      boost: []
-    };
-    const MAX_POINTS = 30;
+    let isAudioEnabled = false;
+    let audioCtx = null;
+    let hasPlayedBeepForCurrentRev = false;
+
+    // CONFIGURAÇÃO DOS GAUGES
+    const CIRCLE_CIRCUMFERENCE = 424;
+    let activeMaxRpm = 8000;
+    let activeShiftRpm = 6300;
 
     // ELEMENTOS DOM
     const vehicleSelect = document.getElementById('vehicleSelect');
@@ -801,11 +892,14 @@
     const vehicleModelName = document.getElementById('vehicleModelName');
     const vehicleEcuProfile = document.getElementById('vehicleEcuProfile');
     const lastPacketTime = document.getElementById('lastPacketTime');
-    
+    const latencyBadge = document.getElementById('latencyBadge');
+
+    const rpmCard = document.getElementById('rpmCard');
     const rpmValue = document.getElementById('rpmValue');
     const rpmGaugeCircle = document.getElementById('rpmGaugeCircle');
+    const rpmRedlineLabel = document.getElementById('rpmRedlineLabel');
     const redlineAlert = document.getElementById('redlineAlert');
-    
+
     const gearValue = document.getElementById('gearValue');
     const speedValue = document.getElementById('speedValue');
     const throttleValue = document.getElementById('throttleValue');
@@ -824,28 +918,120 @@
     const btnToggleSim = document.getElementById('btnToggleSim');
     const btnSimText = document.getElementById('btnSimText');
 
-    // CONFIGURAÇÃO DOS GAUGES (ARCOS SVG)
-    // Raio = 90. Perímetro = 2 * PI * 90 ≈ 565.48. O arco visível cobre 270 graus (3/4 = ~424).
-    const CIRCLE_CIRCUMFERENCE = 424;
+    const btnAudioToggle = document.getElementById('btnAudioToggle');
+    const audioIcon = document.getElementById('audioIcon');
+    const audioText = document.getElementById('audioText');
 
-    function setGaugeRpm(rpm) {
-      const maxRpm = 8000;
-      const clamped = Math.max(0, Math.min(rpm, maxRpm));
-      const percentage = clamped / maxRpm;
-      // offset varia de 424 (0%) a 106 (100% de 270 graus)
+    const leds = [
+      document.getElementById('led1'),
+      document.getElementById('led2'),
+      document.getElementById('led3'),
+      document.getElementById('led4'),
+      document.getElementById('led5'),
+      document.getElementById('led6'),
+      document.getElementById('led7')
+    ];
+
+    // =========================================================================
+    // SÍNTESE DE ÁUDIO RACING (WEB AUDIO API) - SHIFT TONE BEEP
+    // =========================================================================
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playShiftBeep(freq = 1450, duration = 0.09) {
+      if (!isAudioEnabled || !audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        // Envelope com ataque rápido e decaimento limpo estilo F1
+        gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (err) {
+        console.warn("Erro ao emitir áudio:", err);
+      }
+    }
+
+    btnAudioToggle.addEventListener('click', () => {
+      initAudio();
+      isAudioEnabled = !isAudioEnabled;
+      if (isAudioEnabled) {
+        btnAudioToggle.classList.add('active');
+        audioIcon.textContent = "🔊";
+        audioText.textContent = "SHIFT TONE: ATIVADO";
+        // Bip de confirmação
+        playShiftBeep(1200, 0.05);
+      } else {
+        btnAudioToggle.classList.remove('active');
+        audioIcon.textContent = "🔇";
+        audioText.textContent = "SHIFT TONE: DESLIGADO";
+      }
+    });
+
+    // =========================================================================
+    // ATUALIZAÇÃO VISUAL DOS MOSTRADORES & SHIFT LIGHTS
+    // =========================================================================
+    function updateShiftLights(rpmRatio) {
+      // 7 LEDs com acionamento progressivo entre 60% e 94% do limite
+      const thresholds = [0.60, 0.68, 0.76, 0.82, 0.88, 0.92, 0.95];
+      leds.forEach((led, idx) => {
+        if (rpmRatio >= thresholds[idx]) {
+          led.classList.add('on');
+        } else {
+          led.classList.remove('on');
+        }
+      });
+    }
+
+    function setGaugeRpm(rpm, maxRpmLimit) {
+      activeMaxRpm = maxRpmLimit || 8000;
+      activeShiftRpm = activeMaxRpm * 0.92;
+
+      const clamped = Math.max(0, Math.min(rpm, activeMaxRpm));
+      const percentage = clamped / activeMaxRpm;
       const offset = CIRCLE_CIRCUMFERENCE - (percentage * (CIRCLE_CIRCUMFERENCE - 106));
       rpmGaugeCircle.style.strokeDashoffset = offset;
       rpmValue.textContent = Math.round(rpm).toLocaleString();
+      rpmRedlineLabel.textContent = `RPM (Corte: ${Math.round(activeMaxRpm).toLocaleString()})`;
 
-      if (rpm >= 6200) {
+      updateShiftLights(percentage);
+
+      // Alerta de Redline e Som de Shift Tone
+      if (rpm >= activeShiftRpm) {
         redlineAlert.classList.add('active');
+        rpmCard.classList.add('redline-border');
+
+        if (!hasPlayedBeepForCurrentRev) {
+          playShiftBeep(1500, 0.08);
+          hasPlayedBeepForCurrentRev = true;
+        }
       } else {
         redlineAlert.classList.remove('active');
+        rpmCard.classList.remove('redline-border');
+        // Reseta o gatilho sonoro assim que a rotação cai para a próxima marcha
+        if (rpm <= activeShiftRpm * 0.88) {
+          hasPlayedBeepForCurrentRev = false;
+        }
       }
     }
 
     function setGaugeBoost(bar) {
-      // Escala de -1.0 a +2.5 bar (total = 3.5 bar)
       const minBar = -1.0;
       const maxBar = 2.5;
       const clamped = Math.max(minBar, Math.min(bar, maxBar));
@@ -863,35 +1049,35 @@
       }
     }
 
-    // ATUALIZAR UI COM UM PACOTE DE TELEMETRIA
+    // =========================================================================
+    // PROCESSAMENTO DE PACOTE DE TELEMETRIA
+    // =========================================================================
     function updateDashboardWithData(data) {
       if (!data) return;
 
       const meta = data.metadata || {};
       const sensors = data.measurements || {};
 
-      // Metadados
-      vehiclePlateBadge.textContent = meta.vehicle_id || "VW-GOLF-R";
-      vehicleModelName.textContent = meta.model || "Golf TSI 2.0";
+      vehiclePlateBadge.textContent = meta.vehicle_id || "CARREGANDO";
+      vehicleModelName.textContent = meta.model || "Veículo de Telemetria";
       vehicleEcuProfile.textContent = "ECU: " + (meta.ecu_profile || "Stock");
 
       const ts = data.timestamp ? new Date(data.timestamp) : new Date();
-      lastPacketTime.textContent = "Último pacote: " + ts.toLocaleTimeString();
+      lastPacketTime.textContent = "Último: " + ts.toLocaleTimeString();
 
-      // Indicador de Status
       telemetryStateBadge.style.borderColor = "rgba(0, 255, 136, 0.4)";
       telemetryStateBadge.style.color = "var(--accent-green)";
-      telemetryStateText.textContent = "TRANSMITINDO AO VIVO";
+      telemetryStateText.textContent = "TRANSMITINDO (SSE)";
 
-      // Sensores
       const rpm = sensors.rpm || 0;
+      const maxRpm = sensors.max_rpm || (meta.vehicle_id === "FORZA-PILOT-01" ? 8200 : 6500);
       const speed = sensors.speed_kmh || 0;
       const boost = sensors.boost_pressure_bar !== undefined ? sensors.boost_pressure_bar : 0.0;
       const oilTemp = sensors.oil_temp_c || 90;
-      const gear = sensors.gear || "1";
-      const throttle = sensors.throttle_pct !== undefined ? sensors.throttle_pct : Math.min(100, Math.round((rpm / 6500) * 100));
+      const gear = sensors.gear || "N";
+      const throttle = sensors.throttle_pct !== undefined ? sensors.throttle_pct : 0;
 
-      setGaugeRpm(rpm);
+      setGaugeRpm(rpm, maxRpm);
       setGaugeBoost(boost);
 
       speedValue.textContent = Math.round(speed);
@@ -901,14 +1087,16 @@
 
       oilTempValue.innerHTML = Math.round(oilTemp) + " <span>°C</span>";
 
-      // JSON Raw Inspector
       rawJsonBox.textContent = JSON.stringify(data, null, 2);
 
-      // Atualiza Gráfico
       addPointToChart(speed, rpm / 100, boost * 50);
     }
 
-    // DESENHO DO CANVAS GRÁFICO (Zero dependências externas, fluido e veloz)
+    // =========================================================================
+    // CANVAS DINÂMICO
+    // =========================================================================
+    const chartHistory = { labels: [], speed: [], rpm: [], boost: [] };
+    const MAX_POINTS = 35;
     const canvas = document.getElementById('telemetryChart');
     const ctx = canvas.getContext('2d');
 
@@ -932,7 +1120,6 @@
         chartHistory.rpm.shift();
         chartHistory.boost.shift();
       }
-
       drawChart();
     }
 
@@ -941,7 +1128,6 @@
       const w = canvas.width;
       const h = canvas.height;
 
-      // Linhas de Grade
       ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
       ctx.lineWidth = 1;
       for (let y = 20; y < h; y += 40) {
@@ -954,7 +1140,7 @@
       if (chartHistory.speed.length < 2) return;
 
       const step = w / (MAX_POINTS - 1);
-      const maxVal = 250; // Escala máxima
+      const maxVal = 250;
 
       function drawLine(data, color) {
         ctx.beginPath();
@@ -974,12 +1160,48 @@
       drawLine(chartHistory.boost, "#ff0077");
     }
 
-    // BUSCA DE VEÍCULOS E DADOS NO SERVIDOR FLASK
+    // =========================================================================
+    // STREAMING SERVER-SENT EVENTS (SSE) - LATÊNCIA ZERO
+    // =========================================================================
+    function connectSseStream() {
+      if (sseSource) {
+        sseSource.close();
+      }
+
+      const streamUrl = currentVehicleId 
+        ? `/api/v1/telemetry/stream?vehicle_id=${currentVehicleId}`
+        : '/api/v1/telemetry/stream';
+
+      sseSource = new EventSource(streamUrl);
+
+      sseSource.onopen = () => {
+        latencyBadge.textContent = "⚡ ZERO-DELAY SSE";
+        latencyBadge.style.color = "var(--accent-green)";
+        telemetryStateText.textContent = "CONECTADO AO VIVO";
+      };
+
+      sseSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          updateDashboardWithData(data);
+        } catch (e) {
+          // ignora event ping
+        }
+      };
+
+      sseSource.onerror = (err) => {
+        latencyBadge.textContent = "RECONECTANDO...";
+        latencyBadge.style.color = "var(--accent-red)";
+      };
+    }
+
+    // LISTAGEM DE VEÍCULOS & ESTATÍSTICAS
     async function fetchVehicles() {
       try {
         const res = await fetch('/api/v1/telemetry/vehicles');
         const json = await res.json();
         if (json.status === 'success' && json.vehicles.length > 0) {
+          const prevVal = vehicleSelect.value;
           vehicleSelect.innerHTML = "";
           json.vehicles.forEach(v => {
             const opt = document.createElement('option');
@@ -987,13 +1209,13 @@
             opt.textContent = `${v.vehicle_id} - ${v.model}`;
             vehicleSelect.appendChild(opt);
           });
-          if (!currentVehicleId) {
+          if (prevVal && json.vehicles.some(v => v.vehicle_id === prevVal)) {
+            vehicleSelect.value = prevVal;
+          } else if (!currentVehicleId) {
             currentVehicleId = json.vehicles[0].vehicle_id;
             vehicleSelect.value = currentVehicleId;
           }
-          fetchVehicleStats(currentVehicleId);
-        } else {
-          vehicleSelect.innerHTML = '<option value="">Nenhum carro no banco</option>';
+          fetchVehicleStats(vehicleSelect.value);
         }
       } catch (err) {
         console.error("Erro ao listar veículos:", err);
@@ -1016,31 +1238,14 @@
       }
     }
 
-    async function pollLatestTelemetry() {
-      try {
-        const url = currentVehicleId ? `/api/v1/telemetry/latest?vehicle_id=${currentVehicleId}` : '/api/v1/telemetry/latest';
-        const res = await fetch(url);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.data) {
-            updateDashboardWithData(json.data);
-          }
-        }
-      } catch (err) {
-        console.warn("Falha no polling da telemetria:", err);
-      }
-    }
-
     vehicleSelect.addEventListener('change', (e) => {
       currentVehicleId = e.target.value;
-      if (currentVehicleId) {
-        fetchVehicleStats(currentVehicleId);
-      }
+      fetchVehicleStats(currentVehicleId);
+      connectSseStream(); // Re-filtra o stream para o carro escolhido
     });
 
-    // SIMULADOR VIRTUAL EMBUTIDO NO NAVEGADOR
-    // Permite disparar telemetrias reais diretamente para o backend POST /api/v1/telemetry
-    let simRpm = 900;
+    // SIMULADOR VIRTUAL EMBUTIDO
+    let simRpm = 950;
     let simSpeed = 0;
     let simGear = 1;
     let simThrottle = 0;
@@ -1060,9 +1265,9 @@
           if (simGear < 6) {
             simGear++;
             simRpm = 4100;
-            simBoost = 0.2; // Alívio na troca de marcha
+            simBoost = 0.2;
           } else {
-            simAccelerating = false; // Começa desaceleração / frenagem
+            simAccelerating = false;
           }
         }
       } else {
@@ -1074,7 +1279,7 @@
         if (simSpeed <= 30) {
           simGear = 1;
           simRpm = 950;
-          simAccelerating = true; // Arrancada novamente!
+          simAccelerating = true;
         }
       }
 
@@ -1087,6 +1292,7 @@
         },
         measurements: {
           rpm: Math.round(simRpm),
+          max_rpm: 6500,
           speed_kmh: Math.round(simSpeed * 10) / 10,
           boost_pressure_bar: Math.round(simBoost * 100) / 100,
           oil_temp_c: Math.round(simOilTemp * 10) / 10,
@@ -1107,11 +1313,12 @@
     }
 
     btnToggleSim.addEventListener('click', () => {
+      initAudio();
       if (!isBrowserSimRunning) {
         isBrowserSimRunning = true;
         btnToggleSim.classList.add('running');
         btnSimText.textContent = "DESLIGAR MOTOR VIRTUAL";
-        browserSimTimer = setInterval(simulateEngineTick, 250); // 4 envios por segundo
+        browserSimTimer = setInterval(simulateEngineTick, 100);
       } else {
         isBrowserSimRunning = false;
         btnToggleSim.classList.remove('running');
@@ -1122,8 +1329,8 @@
 
     // INICIALIZAÇÃO
     fetchVehicles();
-    pollingInterval = setInterval(pollLatestTelemetry, 350); // Polling a cada 350ms para altíssima fluidez
-    setInterval(fetchVehicles, 5000); // Atualiza lista de carros a cada 5s
+    connectSseStream();
+    setInterval(fetchVehicles, 5000);
   </script>
 </body>
 </html>

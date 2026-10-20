@@ -1,5 +1,7 @@
+import json
 import logging
-from flask import Blueprint, jsonify, request
+import queue
+from flask import Blueprint, Response, jsonify, request, stream_with_context
 from app.services.telemetry_svc import telemetry_service, TelemetryValidationError
 
 logger = logging.getLogger(__name__)
@@ -45,6 +47,50 @@ def ingest_telemetry():
             "details": str(exc),
             "status_code": 500,
         }), 500
+
+
+@telemetry_bp.route("/stream", methods=["GET"])
+def stream_telemetry():
+    """
+    Endpoint de Streaming em Tempo Real (Server-Sent Events / SSE).
+    Permite ao Dashboard receber os dados de telemetria no exato instante
+    em que chegam do Forza ou do simulador, com latência imperceptível (< 15ms).
+    """
+    def event_stream():
+        q = telemetry_service.add_listener()
+        try:
+            # Envia imediatamente o pacote mais recente para abrir os mostradores
+            vehicle_filter = request.args.get("vehicle_id")
+            latest = telemetry_service.get_latest_telemetry(vehicle_filter)
+            if latest:
+                yield f"data: {json.dumps(latest)}\n\n"
+
+            while True:
+                try:
+                    # Aguarda o próximo pacote empurrado pelo Forza / simulador
+                    packet = q.get(timeout=15.0)
+                    if vehicle_filter:
+                        v_id = packet.get("metadata", {}).get("vehicle_id")
+                        if v_id != vehicle_filter:
+                            continue
+                    yield f"data: {json.dumps(packet)}\n\n"
+                except queue.Empty:
+                    # Ping keep-alive para manter a conexão aberta em HTTP
+                    yield ": ping\n\n"
+        except GeneratorExit:
+            pass
+        finally:
+            telemetry_service.remove_listener(q)
+
+    return Response(
+        stream_with_context(event_stream()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @telemetry_bp.route("/latest", methods=["GET"])

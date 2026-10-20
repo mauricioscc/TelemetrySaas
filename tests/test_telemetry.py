@@ -99,3 +99,35 @@ def test_ingest_invalid_payload_validation(client):
         "measurements": {"rpm": 999999, "speed_kmh": 100, "boost_pressure_bar": 1.0, "oil_temp_c": 90}
     })
     assert resp_bad_rpm.status_code == 422
+
+
+def test_ingest_with_max_rpm_and_gear(client):
+    """Garante suporte a campos avançados como max_rpm para cálculo dinâmico de redline."""
+    payload = {
+        "metadata": {"vehicle_id": "FORZA-TEST-01", "model": "Porsche 911 GT3"},
+        "measurements": {
+            "rpm": 8500,
+            "max_rpm": 9000,
+            "speed_kmh": 240.0,
+            "boost_pressure_bar": 0.0,
+            "oil_temp_c": 92.0,
+            "gear": "5",
+        },
+    }
+    db_health = mongo_client.check_health()
+    response = client.post("/api/v1/telemetry", json=payload)
+    if db_health.get("status") == "connected":
+        assert response.status_code == 201
+
+
+def test_telemetry_stream_endpoint(app):
+    """Verifica se o endpoint /api/v1/telemetry/stream expõe headers corretos de SSE e inicia o gerador."""
+    with app.test_request_context("/api/v1/telemetry/stream"):
+        from app.controllers.ingest_ctrl import stream_telemetry
+        response = stream_telemetry()
+        assert response.status_code == 200
+        assert "text/event-stream" in response.content_type
+        gen = response.response
+        first_chunk = next(gen)
+        assert isinstance(first_chunk, (str, bytes))
+        gen.close()

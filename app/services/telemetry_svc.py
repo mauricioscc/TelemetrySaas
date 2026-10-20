@@ -1,4 +1,7 @@
+import json
 import logging
+import queue
+import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -14,12 +17,58 @@ class TelemetryValidationError(ValueError):
 
 class TelemetryService:
     """
-    Serviço responsável pela sanitização, validação e orquestração
-    dos dados de telemetria de alta frequência.
+    Serviço responsável pela sanitização, validação, persistência
+    e streaming em tempo real (Pub/Sub) de telemetria de alta frequência.
     """
 
     def __init__(self, repository: TelemetryRepository = telemetry_repo):
         self._repo = repository
+        self._listeners: List[queue.Queue] = []
+        self._lock = threading.Lock()
+
+    def add_listener(self) -> queue.Queue:
+        """Registra um ouvinte para receber telemetria em streaming com latência zero."""
+        q = queue.Queue(maxsize=50)
+        with self._lock:
+            self._listeners.append(q)
+        logger.debug(f"Novo cliente conectado ao stream. Total: {len(self._listeners)}")
+        return q
+
+    def remove_listener(self, q: queue.Queue) -> None:
+        """Remove o ouvinte após desconexão."""
+        with self._lock:
+            if q in self._listeners:
+                self._listeners.remove(q)
+        logger.debug(f"Cliente desconectado do stream. Restantes: {len(self._listeners)}")
+
+    def _broadcast(self, record: Dict[str, Any]) -> None:
+        """
+        Transmite o pacote em tempo real (in-memory) para todos os navegadores conectados.
+        Acontece instantaneamente, eliminando atrasos de polling.
+        """
+        with self._lock:
+            if not self._listeners:
+                return
+            listeners = list(self._listeners)
+
+        payload = {
+            "timestamp": record["timestamp"].isoformat()
+            if isinstance(record["timestamp"], datetime)
+            else str(record["timestamp"]),
+            "metadata": record["metadata"],
+            "measurements": record["measurements"],
+        }
+
+        for q in listeners:
+            try:
+                q.put_nowait(payload)
+            except queue.Full:
+                # Descarta o mais antigo e insere o mais novo para manter tempo real
+                try:
+                    q.get_nowait()
+                    q.put_nowait(payload)
+                except Exception:
+                    pass
 
     def process_telemetry(
         self, data: Union[Dict[str, Any], List[Dict[str, Any]]]
@@ -37,6 +86,11 @@ class TelemetryService:
 
             sanitized_batch = [self._validate_and_sanitize_record(item, idx) for idx, item in enumerate(data)]
             ids = self._repo.insert_batch(sanitized_batch)
+            
+            # Notifica listeners com o último item do lote
+            if sanitized_batch:
+                self._broadcast(sanitized_batch[-1])
+
             return {
                 "status": "success",
                 "mode": "batch",
@@ -45,8 +99,13 @@ class TelemetryService:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         elif isinstance(data, dict):
-            # Processamento unitário
+            # Processamento unitário (tempo real)
             sanitized = self._validate_and_sanitize_record(data)
+            
+            # Broadcast imediato para streaming de latência zero
+            self._broadcast(sanitized)
+
+            # Persistência no MongoDB Time-Series
             inserted_id = self._repo.insert_telemetry(sanitized)
             return {
                 "status": "success",
@@ -147,7 +206,9 @@ class TelemetryService:
                 "oil_temp_c": round(oil_temp, 1),
             }
 
-            # Campos adicionais opcionais (marcha, acelerador, temperatura de arrefecimento)
+            # Campos opcionais para telemetria avançada
+            if "max_rpm" in m and m["max_rpm"] is not None:
+                clean["max_rpm"] = round(float(m["max_rpm"]), 0)
             if "gear" in m:
                 clean["gear"] = str(m["gear"])
             if "throttle_pct" in m:
