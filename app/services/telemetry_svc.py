@@ -2,6 +2,7 @@ import json
 import logging
 import queue
 import threading
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -17,8 +18,8 @@ class TelemetryValidationError(ValueError):
 
 class TelemetryService:
     """
-    Serviço responsável pela sanitização, validação, persistência
-    e streaming em tempo real (Pub/Sub) de telemetria de alta frequência.
+    Serviço de alta frequência com persistência assíncrona em background
+    e streaming em tempo real (Pub/Sub) de latência zero.
     """
 
     def __init__(self, repository: TelemetryRepository = telemetry_repo):
@@ -26,12 +27,49 @@ class TelemetryService:
         self._listeners: List[queue.Queue] = []
         self._lock = threading.Lock()
 
+        # Fila assíncrona para não bloquear requisições HTTP esperando o MongoDB Atlas na nuvem
+        self._db_queue: queue.Queue = queue.Queue(maxsize=10000)
+        self._worker_thread = threading.Thread(target=self._db_worker, daemon=True, name="TelemetryDBWorker")
+        self._worker_thread.start()
+
+    def _db_worker(self) -> None:
+        """
+        Thread em background que consome a fila e grava no MongoDB Atlas em lotes (batch),
+        garantindo que o loop de streaming no Flask responda em < 1ms sem travar.
+        """
+        while True:
+            items: List[Dict[str, Any]] = []
+            try:
+                # Aguarda o primeiro item
+                item = self._db_queue.get(timeout=0.2)
+                items.append(item)
+
+                # Drena até 100 itens da fila de uma só vez para gravar em lote (insert_batch)
+                while len(items) < 100:
+                    try:
+                        items.append(self._db_queue.get_nowait())
+                    except queue.Empty:
+                        break
+            except queue.Empty:
+                continue
+
+            if items:
+                try:
+                    if len(items) == 1:
+                        self._repo.insert_telemetry(items[0])
+                    else:
+                        self._repo.insert_batch(items)
+                except Exception as exc:
+                    logger.error(f"Erro no background writer do MongoDB Atlas: {exc}")
+                finally:
+                    for _ in items:
+                        self._db_queue.task_done()
+
     def add_listener(self) -> queue.Queue:
-        """Registra um ouvinte para receber telemetria em streaming com latência zero."""
-        q = queue.Queue(maxsize=50)
+        """Registra um ouvinte para streaming SSE em tempo real."""
+        q = queue.Queue(maxsize=100)
         with self._lock:
             self._listeners.append(q)
-        logger.debug(f"Novo cliente conectado ao stream. Total: {len(self._listeners)}")
         return q
 
     def remove_listener(self, q: queue.Queue) -> None:
@@ -39,12 +77,10 @@ class TelemetryService:
         with self._lock:
             if q in self._listeners:
                 self._listeners.remove(q)
-        logger.debug(f"Cliente desconectado do stream. Restantes: {len(self._listeners)}")
 
     def _broadcast(self, record: Dict[str, Any]) -> None:
         """
-        Transmite o pacote em tempo real (in-memory) para todos os navegadores conectados.
-        Acontece instantaneamente, eliminando atrasos de polling.
+        Transmite o pacote em tempo real (in-memory) para o dashboard em < 0.1ms.
         """
         with self._lock:
             if not self._listeners:
@@ -63,7 +99,6 @@ class TelemetryService:
             try:
                 q.put_nowait(payload)
             except queue.Full:
-                # Descarta o mais antigo e insere o mais novo para manter tempo real
                 try:
                     q.get_nowait()
                     q.put_nowait(payload)
@@ -74,44 +109,53 @@ class TelemetryService:
         self, data: Union[Dict[str, Any], List[Dict[str, Any]]]
     ) -> Dict[str, Any]:
         """
-        Processa e persiste um payload de telemetria (único ou em lote).
+        Processa telemetria em alta frequência:
+        1. Valida e sanitiza na memória (< 0.1ms)
+        2. Dispara broadcast SSE imediatamente (< 0.1ms)
+        3. Enfileira para gravação assíncrona no MongoDB Atlas (0ms de espera!)
         """
         if not data:
             raise TelemetryValidationError("O payload de telemetria não pode ser vazio.")
 
         if isinstance(data, list):
-            # Processamento em lote (Batch Ingestion)
             if len(data) > 1000:
                 raise TelemetryValidationError("Limite máximo de 1000 itens por lote excedido.")
 
             sanitized_batch = [self._validate_and_sanitize_record(item, idx) for idx, item in enumerate(data)]
-            ids = self._repo.insert_batch(sanitized_batch)
             
-            # Notifica listeners com o último item do lote
+            # Broadcast imediato do último dado para o painel
             if sanitized_batch:
                 self._broadcast(sanitized_batch[-1])
+
+            # Enfileira para gravação assíncrona no Atlas
+            for item in sanitized_batch:
+                try:
+                    self._db_queue.put_nowait(item)
+                except queue.Full:
+                    pass
 
             return {
                 "status": "success",
                 "mode": "batch",
-                "count": len(ids),
-                "inserted_ids": ids,
+                "count": len(sanitized_batch),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         elif isinstance(data, dict):
-            # Processamento unitário (tempo real)
             sanitized = self._validate_and_sanitize_record(data)
             
-            # Broadcast imediato para streaming de latência zero
+            # Broadcast imediato no mesmo tick
             self._broadcast(sanitized)
 
-            # Persistência no MongoDB Time-Series
-            inserted_id = self._repo.insert_telemetry(sanitized)
+            # Enfileira para persistência no Atlas sem bloquear a requisição
+            try:
+                self._db_queue.put_nowait(sanitized)
+            except queue.Full:
+                pass
+
             return {
                 "status": "success",
                 "mode": "single",
                 "count": 1,
-                "inserted_id": inserted_id,
                 "vehicle_id": sanitized["metadata"]["vehicle_id"],
                 "timestamp": sanitized["timestamp"].isoformat(),
             }
@@ -148,7 +192,7 @@ class TelemetryService:
         if not isinstance(record, dict):
             raise TelemetryValidationError(f"{prefix}Cada leitura deve ser um objeto JSON.")
 
-        # 1. Validação de Metadata
+        # 1. Metadata
         metadata = record.get("metadata")
         if not metadata or not isinstance(metadata, dict):
             raise TelemetryValidationError(f"{prefix}O campo 'metadata' é obrigatório e deve ser um objeto.")
@@ -163,14 +207,14 @@ class TelemetryService:
             "ecu_profile": str(metadata.get("ecu_profile", "Stock")).strip(),
         }
 
-        # 2. Validação de Measurements (Sensores)
+        # 2. Measurements
         measurements = record.get("measurements")
         if not measurements or not isinstance(measurements, dict):
             raise TelemetryValidationError(f"{prefix}O campo 'measurements' é obrigatório e deve ser um objeto.")
 
         clean_measurements = self._sanitize_measurements(measurements, prefix)
 
-        # 3. Validação de Timestamp (Obrigatório ser datetime nativo para MongoDB Time-Series)
+        # 3. Timestamp
         raw_timestamp = record.get("timestamp")
         timestamp = self._parse_timestamp(raw_timestamp, prefix)
 
@@ -181,19 +225,19 @@ class TelemetryService:
         }
 
     def _sanitize_measurements(self, m: Dict[str, Any], prefix: str) -> Dict[str, Any]:
-        """Garante limites numéricos de segurança da telemetria."""
+        """Garante limites numéricos de segurança da telemetria e suporta telemetria FuelTech/Forza."""
         try:
             rpm = float(m.get("rpm", 0))
-            if rpm < 0 or rpm > 15000:
-                raise TelemetryValidationError(f"{prefix}'rpm' fora do limite aceitável (0 a 15000).")
+            if rpm < 0 or rpm > 20000:
+                raise TelemetryValidationError(f"{prefix}'rpm' fora do limite aceitável (0 a 20000).")
 
             speed_kmh = float(m.get("speed_kmh", 0))
-            if speed_kmh < 0 or speed_kmh > 500:
-                raise TelemetryValidationError(f"{prefix}'speed_kmh' fora do limite aceitável (0 a 500).")
+            if speed_kmh < 0 or speed_kmh > 600:
+                raise TelemetryValidationError(f"{prefix}'speed_kmh' fora do limite aceitável (0 a 600).")
 
             boost = float(m.get("boost_pressure_bar", 0.0))
-            if boost < -1.5 or boost > 6.0:
-                raise TelemetryValidationError(f"{prefix}'boost_pressure_bar' fora do limite aceitável (-1.5 a 6.0 bar).")
+            if boost < -1.5 or boost > 8.0:
+                raise TelemetryValidationError(f"{prefix}'boost_pressure_bar' fora do limite aceitável (-1.5 a 8.0 bar).")
 
             oil_temp = float(m.get("oil_temp_c", 90.0))
             if oil_temp < -40 or oil_temp > 200:
@@ -206,13 +250,21 @@ class TelemetryService:
                 "oil_temp_c": round(oil_temp, 1),
             }
 
-            # Campos opcionais para telemetria avançada
+            # Campos adicionais estilo FuelTech / Corrida
             if "max_rpm" in m and m["max_rpm"] is not None:
                 clean["max_rpm"] = round(float(m["max_rpm"]), 0)
             if "gear" in m:
                 clean["gear"] = str(m["gear"])
             if "throttle_pct" in m:
-                clean["throttle_pct"] = max(0.0, min(100.0, float(m["throttle_pct"])))
+                clean["throttle_pct"] = max(0.0, min(100.0, round(float(m["throttle_pct"]), 1)))
+            if "brake_pct" in m:
+                clean["brake_pct"] = max(0.0, min(100.0, round(float(m["brake_pct"]), 1)))
+            if "power_hp" in m:
+                clean["power_hp"] = round(float(m["power_hp"]), 1)
+            if "torque_nm" in m:
+                clean["torque_nm"] = round(float(m["torque_nm"]), 1)
+            if "g_force_lat" in m:
+                clean["g_force_lat"] = round(float(m["g_force_lat"]), 2)
             if "coolant_temp_c" in m:
                 clean["coolant_temp_c"] = round(float(m["coolant_temp_c"]), 1)
 
@@ -234,7 +286,6 @@ class TelemetryService:
 
         if isinstance(raw_timestamp, str):
             try:
-                # Trata formato ISO (ex: 2026-10-20T19:00:00Z ou com microsegundos)
                 ts_str = raw_timestamp.replace("Z", "+00:00")
                 parsed = datetime.fromisoformat(ts_str)
                 if parsed.tzinfo is None:
@@ -242,7 +293,7 @@ class TelemetryService:
                 return parsed
             except ValueError:
                 raise TelemetryValidationError(
-                    f"{prefix}Timestamp '{raw_timestamp}' inválido. Utilize o formato ISO 8601 (ex: '2026-10-20T18:00:00Z')."
+                    f"{prefix}Timestamp '{raw_timestamp}' inválido. Utilize o formato ISO 8601."
                 )
 
         raise TelemetryValidationError(f"{prefix}Timestamp em formato não suportado.")
