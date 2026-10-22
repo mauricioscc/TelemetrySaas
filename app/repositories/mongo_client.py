@@ -1,4 +1,5 @@
 import logging
+import certifi
 from typing import Optional
 from pymongo import MongoClient
 from pymongo.database import Database
@@ -27,6 +28,7 @@ class MongoDBClient:
             self._uri,
             serverSelectionTimeoutMS=2000,
             connect=False,  # Conexão sob demanda (lazy)
+            tlsCAFile=certifi.where()
         )
         self._db = self._client[self._db_name]
         logger.info(f"MongoDB configurado para o banco '{self._db_name}'.")
