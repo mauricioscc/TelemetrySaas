@@ -90,9 +90,11 @@ O layout responsivo apresenta:
 
 * Barra superior de RPM de 0 a 11.000 com shift lights e indicação do limite recebido em `max_rpm`.
 * Marcha e velocidade em destaque, alvo circular para aceleração lateral e longitudinal, e medidores para TPS, potência líquida, torque, pressão do turbo e temperatura do óleo.
-* Seletor de veículo alimentado pelo endpoint `/api/v1/telemetry/vehicles`.
+* Recepção do stream SSE global, sem filtro por veículo no painel simplificado.
 
 O indicador longitudinal utiliza `g_force_long`. O bridge `scripts/forza_bridge.py` calcula esse valor a partir da aceleração longitudinal do pacote do Forza; outros emissores podem enviar o mesmo campo em `measurements`. Se ele estiver ausente, a leitura longitudinal aparece como zero.
+
+O painel FT600 também possui um botão **SHIFT TONE** (desativado por padrão): ao atingir 92% do limite de RPM emite um beep único; acima de 98% repete o beep a cada 80 ms. O áudio é sintetizado pela Web Audio API e para quando o RPM cai abaixo do corte, o áudio é desativado ou a telemetria fica desatualizada. O ícone de tela cheia alterna entre expandir e sair da tela cheia.
 
 ---
 

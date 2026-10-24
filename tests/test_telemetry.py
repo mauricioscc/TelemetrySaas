@@ -32,6 +32,9 @@ def test_ft600_dashboard_route_returns_separate_html(client):
     assert b"TELEMETRIA" in response.data
     assert b"11000" in response.data
     assert b'id="fullscreenButton"' in response.data
+    assert b'id="shiftToneButton"' in response.data
+    assert b'id="vehicleSelect"' not in response.data
+    assert b"LIMITER_BEEP_INTERVAL_MS = 80" in response.data
 
 
 def test_sanitize_measurements_preserves_longitudinal_g_force():

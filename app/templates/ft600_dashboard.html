@@ -38,7 +38,7 @@
         var(--bg);
     }
 
-    button, select { font: inherit; }
+    button { font: inherit; }
 
     .cockpit {
       width: min(100%, 1800px);
@@ -93,18 +93,11 @@
     .connection.connected::before { background: var(--green); }
     .connection.error::before { background: var(--red); }
 
-    .vehicle-select {
-      max-width: min(36vw, 260px);
-      padding: 6px 9px;
-      border: 1px solid var(--line);
-      border-radius: 5px;
-      background: var(--panel);
-      color: var(--white);
-      font-size: .8rem;
-      letter-spacing: .04em;
-    }
-
-    .fullscreen-button {
+    .header-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       padding: 7px 10px;
       border: 1px solid #526063;
       border-radius: 5px;
@@ -117,11 +110,28 @@
       white-space: nowrap;
     }
 
-    .fullscreen-button:hover,
-    .fullscreen-button:focus-visible {
+    .header-button:hover,
+    .header-button:focus-visible {
       border-color: var(--cyan);
       outline: none;
       box-shadow: 0 0 10px rgba(32,217,244,.2);
+    }
+
+    .header-button.active {
+      border-color: var(--green);
+      color: var(--green);
+      box-shadow: 0 0 10px rgba(25,239,89,.16);
+    }
+
+    .header-button svg {
+      width: 17px;
+      height: 17px;
+      flex: 0 0 auto;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 2;
     }
 
     .rpm-panel {
@@ -524,9 +534,8 @@
       .cockpit { gap: 8px; padding: 8px; }
       .topline { font-size: .62rem; letter-spacing: .1em; }
       .top-controls { gap: 7px; }
-      .vehicle-select { max-width: 42vw; font-size: .7rem; }
       .connection { max-width: 84px; overflow: hidden; text-overflow: ellipsis; }
-      .fullscreen-button { padding: 6px 7px; font-size: .62rem; }
+      .header-button { padding: 6px 7px; font-size: .62rem; }
       .main-grid { grid-template-columns: minmax(112px, .75fr) minmax(170px, 1.35fr) minmax(116px, .75fr); gap: 7px; }
       .panel-title { letter-spacing: .1em; }
       .g-panel { padding: 8px; }
@@ -591,8 +600,8 @@
 
       .top-controls { gap: clamp(4px, 1vw, 9px); }
       .connection { font-size: .58rem; }
-      .vehicle-select { max-width: 27vw; padding: 4px 6px; font-size: .65rem; }
-      .fullscreen-button { padding: 4px 7px; font-size: .58rem; }
+      .header-button { padding: 4px 7px; font-size: .58rem; }
+      .header-button svg { width: 15px; height: 15px; }
 
       .rpm-panel { padding: clamp(5px, 1.2vh, 8px) clamp(8px, 1.4vw, 14px); }
       .rpm-heading { margin-bottom: 3px; }
@@ -657,11 +666,12 @@
       <div class="brand">FT600 <span>// TELEMETRIA</span></div>
       <div class="top-controls">
         <span class="connection" id="connectionState" role="status">CONECTANDO</span>
-        <select class="vehicle-select" id="vehicleSelect" aria-label="Selecionar veículo">
-          <option value="">Todos os veículos</option>
-        </select>
-        <button class="fullscreen-button" id="fullscreenButton" type="button" aria-pressed="false">
-          TELA CHEIA
+        <button class="header-button" id="shiftToneButton" type="button" aria-pressed="false" title="Ativar ou desativar alertas sonoros de RPM">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+          <span>SHIFT TONE</span>
+        </button>
+        <button class="header-button" id="fullscreenButton" type="button" aria-label="Entrar em tela cheia" aria-pressed="false">
+          <svg id="fullscreenIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/></svg>
         </button>
       </div>
     </header>
@@ -768,9 +778,19 @@
       const POWER_SCALE_MAX = 1200;
       const TORQUE_SCALE_MAX = 2000;
       const G_FORCE_SCALE_MAX = 1.5;
+      const SHIFT_WARNING_RATIO = 0.92;
+      const LIMITER_RATIO = 0.98;
+      const LIMITER_BEEP_INTERVAL_MS = 80;
+      const SHIFT_PITCH_HZ = 2650;
+      const SHIFT_BEEP_DURATION_SECONDS = 0.065;
+      const FULLSCREEN_EXPAND_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/></svg>';
+      const FULLSCREEN_COMPRESS_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M21 16h-3a2 2 0 0 0-2 2v3M3 16h3a2 2 0 0 1 2 2v3"/></svg>';
+      window.isLimiterActive = false;
+      window.limiterInterval = null;
+
       const elements = {
         connection: document.getElementById("connectionState"),
-        vehicleSelect: document.getElementById("vehicleSelect"),
+        shiftToneButton: document.getElementById("shiftToneButton"),
         fullscreenButton: document.getElementById("fullscreenButton"),
         rpmValue: document.getElementById("rpmValue"),
         rpmLimit: document.getElementById("rpmLimit"),
@@ -799,7 +819,56 @@
         gLongValue: document.getElementById("gLongValue"),
       };
       let eventSource;
-      let fullscreenFeedbackTimer;
+      let audioEnabled = false;
+      let audioEngine;
+      let currentRpm = 0;
+      let activeMaxRpm = RPM_SCALE_MAX;
+      let hasPlayedShiftBeep = false;
+      let isTelemetryFresh = false;
+      let telemetryWatchdogTimer;
+
+      class ShiftAudioEngine {
+        constructor() {
+          this.audioContext = null;
+        }
+
+        async enable() {
+          if (!this.audioContext) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) {
+              throw new Error("Web Audio API não está disponível neste navegador.");
+            }
+            this.audioContext = new AudioContextClass();
+          }
+
+          if (this.audioContext.state === "suspended") {
+            await this.audioContext.resume();
+          }
+        }
+
+        playBeep(freq = SHIFT_PITCH_HZ, duration = SHIFT_BEEP_DURATION_SECONDS) {
+          if (!audioEnabled || !this.audioContext) return;
+          try {
+            const oscillator = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            const now = this.audioContext.currentTime;
+
+            oscillator.type = "sine";
+            oscillator.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.linearRampToValueAtTime(0.32, now + 0.004);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+            oscillator.connect(gain);
+            gain.connect(this.audioContext.destination);
+            oscillator.start();
+            oscillator.stop(now + duration);
+          } catch (error) {
+            console.error("Não foi possível emitir o Shift Tone:", error);
+          }
+        }
+      }
+
+      audioEngine = new ShiftAudioEngine();
 
       function numberOr(value, fallback = 0) {
         const number = Number(value);
@@ -826,21 +895,18 @@
 
       function syncFullscreenButton() {
         const isFullscreen = document.fullscreenElement === document.documentElement;
-        elements.fullscreenButton.textContent = isFullscreen ? "SAIR DA TELA CHEIA" : "TELA CHEIA";
+        elements.fullscreenButton.innerHTML = isFullscreen
+          ? FULLSCREEN_COMPRESS_ICON
+          : FULLSCREEN_EXPAND_ICON;
+        elements.fullscreenButton.setAttribute("aria-label", isFullscreen ? "Sair da tela cheia" : "Entrar em tela cheia");
         elements.fullscreenButton.setAttribute("aria-pressed", String(isFullscreen));
         elements.fullscreenButton.title = isFullscreen ? "Sair da tela cheia" : "Entrar em tela cheia";
-      }
-
-      function showFullscreenFeedback(message) {
-        window.clearTimeout(fullscreenFeedbackTimer);
-        elements.fullscreenButton.textContent = message;
-        fullscreenFeedbackTimer = window.setTimeout(syncFullscreenButton, 2200);
       }
 
       elements.fullscreenButton.addEventListener("click", async () => {
         if (!document.fullscreenEnabled) {
           console.error("O modo tela cheia não está disponível neste navegador ou contexto.");
-          showFullscreenFeedback("INDISPONÍVEL");
+          elements.fullscreenButton.title = "O modo tela cheia não está disponível neste navegador.";
           return;
         }
 
@@ -852,17 +918,85 @@
           }
         } catch (error) {
           console.error("Não foi possível alterar o modo de tela cheia:", error);
-          showFullscreenFeedback("NÃO FOI POSSÍVEL");
+          elements.fullscreenButton.title = "Não foi possível alterar o modo de tela cheia.";
         }
       });
 
       document.addEventListener("fullscreenchange", syncFullscreenButton);
+
+      function stopLimiterBeep() {
+        if (window.limiterInterval !== null) {
+          window.clearInterval(window.limiterInterval);
+          window.limiterInterval = null;
+        }
+        window.isLimiterActive = false;
+      }
+
+      function updateRpmAlert() {
+        const shiftRpm = activeMaxRpm * SHIFT_WARNING_RATIO;
+        const limiterRpm = activeMaxRpm * LIMITER_RATIO;
+
+        if (currentRpm >= shiftRpm) {
+          if (audioEnabled && isTelemetryFresh && !hasPlayedShiftBeep) {
+            audioEngine.playBeep();
+            hasPlayedShiftBeep = true;
+          }
+        } else if (currentRpm <= shiftRpm * 0.88) {
+          hasPlayedShiftBeep = false;
+        }
+
+        if (!audioEnabled || !isTelemetryFresh || currentRpm < limiterRpm) {
+          stopLimiterBeep();
+          return;
+        }
+
+        if (!window.isLimiterActive) {
+          window.isLimiterActive = true;
+          audioEngine.playBeep();
+          window.limiterInterval = window.setInterval(() => {
+            audioEngine.playBeep();
+          }, LIMITER_BEEP_INTERVAL_MS);
+        }
+      }
+
+      elements.shiftToneButton.addEventListener("click", async () => {
+        if (!audioEnabled) {
+          try {
+            await audioEngine.enable();
+            audioEnabled = true;
+          } catch (error) {
+            console.error("Não foi possível ativar o Shift Tone:", error);
+            return;
+          }
+        } else {
+          audioEnabled = false;
+          stopLimiterBeep();
+        }
+
+        elements.shiftToneButton.classList.toggle("active", audioEnabled);
+        elements.shiftToneButton.setAttribute("aria-pressed", String(audioEnabled));
+        elements.shiftToneButton.title = audioEnabled
+          ? "Desativar alertas sonoros de RPM"
+          : "Ativar alertas sonoros de RPM";
+        updateRpmAlert();
+      });
+
+      function markTelemetryFresh() {
+        isTelemetryFresh = true;
+        window.clearTimeout(telemetryWatchdogTimer);
+        telemetryWatchdogTimer = window.setTimeout(() => {
+          isTelemetryFresh = false;
+          stopLimiterBeep();
+        }, 1500);
+      }
 
       function renderTelemetry(packet) {
         const measurements = packet.measurements || {};
         const metadata = packet.metadata || {};
         const rpm = Math.max(0, numberOr(measurements.rpm));
         const limit = Math.max(1, numberOr(measurements.max_rpm, RPM_SCALE_MAX));
+        currentRpm = rpm;
+        activeMaxRpm = limit;
         const speed = Math.max(0, numberOr(measurements.speed_kmh));
         const throttle = clamp(numberOr(measurements.throttle_pct), 0, 100);
         const brake = clamp(numberOr(measurements.brake_pct), 0, 100);
@@ -878,6 +1012,7 @@
         elements.rpmLimit.textContent = Math.round(limit).toLocaleString("pt-BR");
         elements.rpmFill.style.width = `${rpmPercent}%`;
         elements.rpmRedline.style.left = `${clamp((limit / RPM_SCALE_MAX) * 100, 0, 100)}%`;
+        elements.rpmTrack.setAttribute("aria-valuemax", String(RPM_SCALE_MAX));
         elements.rpmTrack.setAttribute("aria-valuenow", String(Math.round(clamp(rpm, 0, RPM_SCALE_MAX))));
         const shiftThresholds = [.65, .72, .79, .86, .91, .96, .99];
         elements.shiftLights.forEach((light, index) => {
@@ -910,53 +1045,37 @@
           : timestamp.toLocaleTimeString("pt-BR");
         elements.packetTime.classList.remove("no-data");
         setConnection("AO VIVO", "connected");
+        updateRpmAlert();
       }
 
       function connectStream() {
         if (eventSource) eventSource.close();
-        const vehicleId = elements.vehicleSelect.value;
-        const query = vehicleId ? `?vehicle_id=${encodeURIComponent(vehicleId)}` : "";
-        eventSource = new EventSource(`/api/v1/telemetry/stream${query}`);
+        isTelemetryFresh = false;
+        window.clearTimeout(telemetryWatchdogTimer);
+        stopLimiterBeep();
+        eventSource = new EventSource("/api/v1/telemetry/stream");
         setConnection("CONECTANDO", "pending");
 
         eventSource.onopen = () => setConnection("CONECTADO", "connected");
         eventSource.onmessage = (event) => {
           try {
-            renderTelemetry(JSON.parse(event.data));
+            const packet = JSON.parse(event.data);
+            markTelemetryFresh();
+            renderTelemetry(packet);
           } catch (error) {
             console.error("Não foi possível processar um pacote de telemetria:", error);
           }
         };
-        eventSource.onerror = () => setConnection("RECONECTANDO", "error");
+        eventSource.onerror = () => {
+          setConnection("RECONECTANDO", "error");
+          isTelemetryFresh = false;
+          window.clearTimeout(telemetryWatchdogTimer);
+          stopLimiterBeep();
+        };
       }
 
-      async function loadVehicles() {
-        try {
-          const response = await fetch("/api/v1/telemetry/vehicles");
-          if (!response.ok) throw new Error(`Falha ao carregar veículos: HTTP ${response.status}`);
-          const result = await response.json();
-          const selected = elements.vehicleSelect.value;
-          const vehicles = Array.isArray(result.vehicles) ? result.vehicles : [];
-          elements.vehicleSelect.replaceChildren(new Option("Todos os veículos", ""));
-          vehicles.forEach((vehicle) => {
-            const id = String(vehicle.vehicle_id || "");
-            if (id) elements.vehicleSelect.add(new Option(
-              `${id}${vehicle.model ? ` · ${vehicle.model}` : ""}`,
-              id,
-            ));
-          });
-          if (vehicles.some((vehicle) => vehicle.vehicle_id === selected)) {
-            elements.vehicleSelect.value = selected;
-          }
-        } catch (error) {
-          console.error("Não foi possível carregar a lista de veículos:", error);
-        }
-      }
-
-      elements.vehicleSelect.addEventListener("change", connectStream);
-      loadVehicles();
+      syncFullscreenButton();
       connectStream();
-      window.setInterval(loadVehicles, 10000);
     })();
   </script>
 </body>
