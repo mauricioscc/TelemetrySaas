@@ -1,8 +1,9 @@
 # 🏎️ Apex Telemetry SaaS — Telemetria Automotiva em Alta Frequência
 
-API e Cockpit de alta performance para ingestão, análise e monitoramento de telemetria automotiva em tempo real (RPM, velocidade, pressão de turbo, temperatura de óleo, marcha e aceleração), utilizando **Python 3**, **Flask**, **Streaming SSE (Latência Zero)**, **Síntese de Áudio Web (Shift Tone)** e **MongoDB Time-Series Collections**.
+API e cockpits de alta performance para ingestão, análise e monitoramento de telemetria automotiva em tempo real (RPM, velocidade, pressão de turbo, temperatura de óleo, marcha, potência, torque e aceleração), utilizando **Python 3**, **Flask**, **Streaming SSE**, **Síntese de Áudio Web (Shift Tone)** e **MongoDB Time-Series Collections**.
 
 Suporta simulação nativa de motor (Golf R 2.0 TSI Stage 2) e **integração direta via UDP com Forza Horizon 4 / 5**.
+Além do cockpit padrão em `/dashboard`, há um painel alternativo responsivo inspirado em clusters de corrida FuelTech, disponível em `/dashboard/ft600`.
 
 ---
 
@@ -29,11 +30,11 @@ Suporta simulação nativa de motor (Golf R 2.0 TSI Stage 2) e **integração di
       Streaming SSE (Instantâneo)         │ Persistência Assíncrona
                  ▼                        ▼
   ┌──────────────────────────────┐ ┌──────────────────────────────┐
-  │     Cockpit Web (Navegador)  │ │   MongoDB Atlas (Cloud)      │
-  │   - Mostradores de RPM/Turbo │ │ - Time-Series Collection     │
-  │   - F1 Shift Lights          │ │ - Granularity: seconds       │
-  │   - Shift Tone (Beep F1)     │ │ - Compactação Temporal BSON  │
-  │   - Gráficos a 60 FPS        │ └──────────────────────────────┘
+  │       Cockpits Web           │ │   MongoDB Atlas (Cloud)      │
+  │   - Dashboard padrão         │ │ - Time-Series Collection     │
+  │   - Painel FT600 responsivo  │ │ - Granularity: seconds       │
+  │   - RPM, TPS e Shift Lights  │ │ - Compactação Temporal BSON  │
+  │   - Força G, torque e turbo  │ └──────────────────────────────┘
   └──────────────────────────────┘
 ```
 
@@ -51,7 +52,7 @@ TelemetrySaas/
 │   ├── controllers/              # Endpoints HTTP da Aplicação (Flask Blueprints)
 │   │   ├── health_ctrl.py        # GET / e GET /api/v1/health (ping do MongoDB)
 │   │   ├── ingest_ctrl.py        # POST /api/v1/telemetry, GET /stream, /latest, /history, /stats
-│   │   └── dashboard_ctrl.py     # GET /dashboard (renderiza o cockpit web)
+│   │   └── dashboard_ctrl.py     # GET /dashboard e /dashboard/ft600
 │   │
 │   ├── services/
 │   │   └── telemetry_svc.py      # Validação física de sensores, Pub/Sub em memória para streaming
@@ -61,7 +62,8 @@ TelemetrySaas/
 │   │   └── telemetry_repo.py     # Criação de Time-Series nativas e agregações analíticas
 │   │
 │   └── templates/
-│       └── dashboard.html        # Cockpit visual esportivo com SVG Gauges e Web Audio
+│       ├── dashboard.html        # Cockpit padrão com SVG Gauges e Web Audio
+│       └── ft600_dashboard.html  # Cockpit alternativo responsivo inspirado na FT600
 │
 ├── scripts/
 │   ├── simulator.py              # Simulador de Motor Virtual (Golf R MK7.5 2.0 TSI DSG)
@@ -80,7 +82,21 @@ TelemetrySaas/
 
 ---
 
-## ⚡ Por que Time-Series e Streaming de Latência Zero?
+## 🏁 Painel alternativo FT600
+
+Acesse **[http://127.0.0.1:5000/dashboard/ft600](http://127.0.0.1:5000/dashboard/ft600)** para abrir o painel alternativo. Ele usa HTML, CSS Grid e JavaScript nativo, acompanha a telemetria pelo mesmo stream SSE e não substitui nem altera o painel padrão em `/dashboard`.
+
+O layout responsivo apresenta:
+
+* Barra superior de RPM de 0 a 11.000 com shift lights e indicação do limite recebido em `max_rpm`.
+* Marcha e velocidade em destaque, alvo circular para aceleração lateral e longitudinal, e medidores para TPS, potência líquida, torque, pressão do turbo e temperatura do óleo.
+* Seletor de veículo alimentado pelo endpoint `/api/v1/telemetry/vehicles`.
+
+O indicador longitudinal utiliza `g_force_long`. O bridge `scripts/forza_bridge.py` calcula esse valor a partir da aceleração longitudinal do pacote do Forza; outros emissores podem enviar o mesmo campo em `measurements`. Se ele estiver ausente, a leitura longitudinal aparece como zero.
+
+---
+
+## ⚡ Por que Time-Series e Streaming?
 
 1. **MongoDB Time-Series Collections:**
    * Em vez de salvar cada leitura de sensor como um documento solto (o que incha o banco com milhões de linhas), o MongoDB agrupa as leituras em **buckets temporais comprimidos** por veículo (`granularity: "seconds"`).
@@ -93,7 +109,8 @@ TelemetrySaas/
 3. **Alerta Sonoro de Troca de Marcha (Shift Tone):**
    * Sintetizador sonoro integrado via **Web Audio API** (`AudioContext`).
    * Lê a rotação máxima (`max_rpm`) transmitida pela física do jogo ou simulador.
-   * Quando o motor atinge **92% do limite de giro**, o painel pisca os **Shift Lights F1** e emite um bipe agudo esportivo (1450 Hz) avisando o piloto para trocar de marcha!
+   * Quando o motor atinge **92% do limite de giro**, o dashboard padrão pisca o alerta e emite um bipe de troca de marcha. O tom padrão é 2650 Hz e pode ser alterado no seletor de tom.
+   * O controle opcional **BEEP NO LIMITE** repete o alerta ao atingir 98% do limite, enquanto houver telemetria recente e o áudio estiver ativado. O intervalo padrão é 250 ms e pode ser ajustado em `REDLINE_BEEP_INTERVAL_MS` no script de `app/templates/dashboard.html`.
 
 ---
 
@@ -112,6 +129,7 @@ Acesse no Chrome ou Edge:
 
 * Clique em **"🔇 SHIFT TONE"** no topo da página para ativar o bipe sonoro de troca de marcha.
 * Você pode alternar os carros visualizados no seletor **"Veículo"**.
+* Para abrir o painel alternativo responsivo, acesse **[http://127.0.0.1:5000/dashboard/ft600](http://127.0.0.1:5000/dashboard/ft600)**.
 
 ---
 
@@ -147,7 +165,8 @@ Em um segundo terminal, rode:
 | Método | Rota | Descrição |
 | :---: | :--- | :--- |
 | `GET` | `/` | Metadados do SaaS e links rápidos. |
-| `GET` | `/dashboard` | Cockpit visual completo com gauges e áudio. |
+| `GET` | `/dashboard` | Cockpit padrão com gauges, gráficos e áudio. |
+| `GET` | `/dashboard/ft600` | Cockpit alternativo responsivo inspirado em clusters de corrida FT600. |
 | `GET` | `/api/v1/health` | Health check da aplicação e ping de integridade do MongoDB Atlas. |
 | `POST` | `/api/v1/telemetry` | Ingestão de telemetria individual ou em lote (batch de até 1.000 itens). |
 | `GET` | `/api/v1/telemetry/stream` | Stream SSE em tempo real com latência zero (`text/event-stream`). |
@@ -177,7 +196,8 @@ Em um segundo terminal, rode:
     "brake_pct": 0.0,
     "power_hp": 525.0,
     "torque_nm": 465.0,
-    "g_force_lat": 1.35
+    "g_force_lat": 1.35,
+    "g_force_long": -0.18
   }
 }
 ```
@@ -186,25 +206,10 @@ Em um segundo terminal, rode:
 
 ## 🧪 Bateria de Testes Automatizados
 
-O projeto conta com suíte de testes com **100% de aprovação** cobrindo contratos HTTP, validações de limites físicos e streaming SSE:
+O projeto conta com testes para contratos HTTP, validações de limites físicos, streaming SSE, rota do painel FT600 e sanitização da aceleração longitudinal:
 
 ```powershell
 .\venv\Scripts\pytest.exe -v
-```
-
-```text
-tests/test_health.py::test_index_route PASSED
-tests/test_health.py::test_health_check_without_db PASSED
-tests/test_health.py::test_health_check_default PASSED
-tests/test_health.py::test_404_error_handler PASSED
-tests/test_health.py::test_405_error_handler PASSED
-tests/test_telemetry.py::test_dashboard_route_returns_html PASSED
-tests/test_telemetry.py::test_ingest_single_valid_telemetry PASSED
-tests/test_telemetry.py::test_ingest_batch_valid_telemetry PASSED
-tests/test_telemetry.py::test_ingest_invalid_payload_validation PASSED
-tests/test_telemetry.py::test_ingest_with_max_rpm_and_gear PASSED
-tests/test_telemetry.py::test_telemetry_stream_endpoint PASSED
-============================= 11 passed in 3.10s ==============================
 ```
 
 ---
