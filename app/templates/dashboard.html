@@ -155,6 +155,21 @@
       font-weight: 600;
     }
 
+    .audio-repeat-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .audio-repeat-wrap input {
+      accent-color: var(--accent-red);
+      cursor: pointer;
+    }
+
     select#pitchSelect {
       background: transparent;
       border: none;
@@ -856,6 +871,10 @@
             <option value="1900">1900 Hz (Médio)</option>
           </select>
         </div>
+        <label class="audio-repeat-wrap" for="repeatedBeepToggle" title="Repetir o beep ao atingir 98% do limite de RPM">
+          <input type="checkbox" id="repeatedBeepToggle">
+          BEEP NO LIMITE
+        </label>
         <button class="btn-audio-test" id="btnAudioTest" title="Testar som nos alto-falantes / fone">
           🔊 TESTAR
         </button>
@@ -1105,6 +1124,11 @@
     let isAudioEnabled = false;
     let audioCtx = null;
     let hasPlayedBeepForCurrentRev = false;
+    let redlineBeepInterval = null;
+    const REDLINE_BEEP_INTERVAL_MS = 100;
+    let telemetryWatchdogTimer = null;
+    let isTelemetryFresh = false;
+    let currentRpm = 0;
     let activeShiftPitch = 2650; // Agudo padrão FuelTech (2650 Hz)
     let lastJsonUpdateTime = 0;
     let sessionPeakPower = 0;
@@ -1164,6 +1188,7 @@
     const audioIcon = document.getElementById('audioIcon');
     const audioText = document.getElementById('audioText');
     const pitchSelect = document.getElementById('pitchSelect');
+    const repeatedBeepToggle = document.getElementById('repeatedBeepToggle');
     const btnAudioTest = document.getElementById('btnAudioTest');
 
     const leds = [
@@ -1213,6 +1238,37 @@
       }
     }
 
+    function stopRedlineBeep() {
+      if (redlineBeepInterval !== null) {
+        clearInterval(redlineBeepInterval);
+        redlineBeepInterval = null;
+      }
+    }
+
+    function syncRedlineBeep() {
+      const isAtRedline = currentRpm >= activeMaxRpm * 0.98;
+      if (!isAudioEnabled || !isTelemetryFresh || !repeatedBeepToggle.checked || !isAtRedline) {
+        stopRedlineBeep();
+        return;
+      }
+
+      if (redlineBeepInterval === null) {
+        playShiftBeep(activeShiftPitch, 0.065);
+        redlineBeepInterval = setInterval(() => {
+          playShiftBeep(activeShiftPitch, 0.065);
+        }, REDLINE_BEEP_INTERVAL_MS);
+      }
+    }
+
+    function markTelemetryFresh() {
+      isTelemetryFresh = true;
+      clearTimeout(telemetryWatchdogTimer);
+      telemetryWatchdogTimer = setTimeout(() => {
+        isTelemetryFresh = false;
+        stopRedlineBeep();
+      }, 1500);
+    }
+
     btnAudioToggle.addEventListener('click', () => {
       initAudio();
       isAudioEnabled = !isAudioEnabled;
@@ -1222,12 +1278,16 @@
         audioText.textContent = "SHIFT TONE: ATIVADO";
         // Bip agudo de confirmação
         playShiftBeep(activeShiftPitch, 0.05);
+        syncRedlineBeep();
       } else {
         btnAudioToggle.classList.remove('active');
         audioIcon.textContent = "🔇";
         audioText.textContent = "SHIFT TONE: DESLIGADO";
+        stopRedlineBeep();
       }
     });
+
+    repeatedBeepToggle.addEventListener('change', syncRedlineBeep);
 
     pitchSelect.addEventListener('change', (e) => {
       activeShiftPitch = parseInt(e.target.value, 10) || 2650;
@@ -1261,6 +1321,7 @@
     }
 
     function setGaugeRpm(rpm, maxRpmLimit) {
+      currentRpm = rpm;
       activeMaxRpm = maxRpmLimit || 8000;
       activeShiftRpm = activeMaxRpm * 0.92;
 
@@ -1289,6 +1350,8 @@
           hasPlayedBeepForCurrentRev = false;
         }
       }
+
+      syncRedlineBeep();
     }
 
     function setGaugeBoost(bar) {
@@ -1314,6 +1377,7 @@
     // =========================================================================
     function updateDashboardWithData(data) {
       if (!data) return;
+      markTelemetryFresh();
 
       const meta = data.metadata || {};
       const sensors = data.measurements || {};
@@ -1463,6 +1527,9 @@
       if (sseSource) {
         sseSource.close();
       }
+      isTelemetryFresh = false;
+      clearTimeout(telemetryWatchdogTimer);
+      stopRedlineBeep();
 
       const streamUrl = currentVehicleId 
         ? `/api/v1/telemetry/stream?vehicle_id=${currentVehicleId}`
@@ -1488,6 +1555,9 @@
       sseSource.onerror = (err) => {
         latencyBadge.textContent = "RECONECTANDO...";
         latencyBadge.style.color = "var(--accent-red)";
+        isTelemetryFresh = false;
+        clearTimeout(telemetryWatchdogTimer);
+        stopRedlineBeep();
       };
     }
 
