@@ -104,6 +104,26 @@
       letter-spacing: .04em;
     }
 
+    .fullscreen-button {
+      padding: 7px 10px;
+      border: 1px solid #526063;
+      border-radius: 5px;
+      background: var(--panel-raised);
+      color: var(--white);
+      cursor: pointer;
+      font-size: .72rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+      white-space: nowrap;
+    }
+
+    .fullscreen-button:hover,
+    .fullscreen-button:focus-visible {
+      border-color: var(--cyan);
+      outline: none;
+      box-shadow: 0 0 10px rgba(32,217,244,.2);
+    }
+
     .rpm-panel {
       padding: clamp(11px, 1.5vw, 20px);
       border: 1px solid #262d2f;
@@ -506,6 +526,7 @@
       .top-controls { gap: 7px; }
       .vehicle-select { max-width: 42vw; font-size: .7rem; }
       .connection { max-width: 84px; overflow: hidden; text-overflow: ellipsis; }
+      .fullscreen-button { padding: 6px 7px; font-size: .62rem; }
       .main-grid { grid-template-columns: minmax(112px, .75fr) minmax(170px, 1.35fr) minmax(116px, .75fr); gap: 7px; }
       .panel-title { letter-spacing: .1em; }
       .g-panel { padding: 8px; }
@@ -555,6 +576,9 @@
         <select class="vehicle-select" id="vehicleSelect" aria-label="Selecionar veículo">
           <option value="">Todos os veículos</option>
         </select>
+        <button class="fullscreen-button" id="fullscreenButton" type="button" aria-pressed="false">
+          TELA CHEIA
+        </button>
       </div>
     </header>
 
@@ -663,6 +687,7 @@
       const elements = {
         connection: document.getElementById("connectionState"),
         vehicleSelect: document.getElementById("vehicleSelect"),
+        fullscreenButton: document.getElementById("fullscreenButton"),
         rpmValue: document.getElementById("rpmValue"),
         rpmLimit: document.getElementById("rpmLimit"),
         rpmFill: document.getElementById("rpmFill"),
@@ -690,6 +715,7 @@
         gLongValue: document.getElementById("gLongValue"),
       };
       let eventSource;
+      let fullscreenFeedbackTimer;
 
       function numberOr(value, fallback = 0) {
         const number = Number(value);
@@ -713,6 +739,40 @@
         elements.connection.classList.toggle("connected", state === "connected");
         elements.connection.classList.toggle("error", state === "error");
       }
+
+      function syncFullscreenButton() {
+        const isFullscreen = document.fullscreenElement === document.documentElement;
+        elements.fullscreenButton.textContent = isFullscreen ? "SAIR DA TELA CHEIA" : "TELA CHEIA";
+        elements.fullscreenButton.setAttribute("aria-pressed", String(isFullscreen));
+        elements.fullscreenButton.title = isFullscreen ? "Sair da tela cheia" : "Entrar em tela cheia";
+      }
+
+      function showFullscreenFeedback(message) {
+        window.clearTimeout(fullscreenFeedbackTimer);
+        elements.fullscreenButton.textContent = message;
+        fullscreenFeedbackTimer = window.setTimeout(syncFullscreenButton, 2200);
+      }
+
+      elements.fullscreenButton.addEventListener("click", async () => {
+        if (!document.fullscreenEnabled) {
+          console.error("O modo tela cheia não está disponível neste navegador ou contexto.");
+          showFullscreenFeedback("INDISPONÍVEL");
+          return;
+        }
+
+        try {
+          if (document.fullscreenElement) {
+            await document.exitFullscreen();
+          } else {
+            await document.documentElement.requestFullscreen();
+          }
+        } catch (error) {
+          console.error("Não foi possível alterar o modo de tela cheia:", error);
+          showFullscreenFeedback("NÃO FOI POSSÍVEL");
+        }
+      });
+
+      document.addEventListener("fullscreenchange", syncFullscreenButton);
 
       function renderTelemetry(packet) {
         const measurements = packet.measurements || {};

@@ -31,6 +31,7 @@ def test_ft600_dashboard_route_returns_separate_html(client):
     assert b"FT600" in response.data
     assert b"TELEMETRIA" in response.data
     assert b"11000" in response.data
+    assert b'id="fullscreenButton"' in response.data
 
 
 def test_sanitize_measurements_preserves_longitudinal_g_force():
