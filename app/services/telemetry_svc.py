@@ -265,6 +265,8 @@ class TelemetryService:
                 clean["torque_nm"] = round(float(m["torque_nm"]), 1)
             if "g_force_lat" in m:
                 clean["g_force_lat"] = round(float(m["g_force_lat"]), 2)
+            if "g_force_long" in m:
+                clean["g_force_long"] = round(float(m["g_force_long"]), 2)
             if "coolant_temp_c" in m:
                 clean["coolant_temp_c"] = round(float(m["coolant_temp_c"]), 1)
 

@@ -59,6 +59,7 @@ def parse_forza_packet(data: bytes) -> dict:
     ay = struct.unpack("<f", data[24:28])[0]
     az = struct.unpack("<f", data[28:32])[0]
     g_force_lat = ax / 9.80665
+    g_force_long = az / 9.80665
 
     # 3. Velocidade em m/s -> km/h
     vx = struct.unpack("<f", data[32:36])[0]
@@ -120,6 +121,7 @@ def parse_forza_packet(data: bytes) -> dict:
         "power_hp": round(power_hp, 0),
         "torque_nm": round(torque_nm, 1),
         "g_force_lat": round(g_force_lat, 2),
+        "g_force_long": round(g_force_long, 2),
     }
 
 

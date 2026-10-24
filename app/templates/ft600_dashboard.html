@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050607">
+  <title>FT600 // Painel de Telemetria</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050607;
+      --panel: #101315;
+      --panel-raised: #171b1d;
+      --line: #303638;
+      --muted: #8b9699;
+      --white: #f4f7f5;
+      --green: #19ef59;
+      --cyan: #20d9f4;
+      --yellow: #ffd52a;
+      --orange: #ff8b22;
+      --red: #ff4148;
+      --lcd: "Arial Narrow", "Roboto Condensed", "Bahnschrift SemiCondensed", sans-serif;
+      font-family: var(--lcd);
+      background: var(--bg);
+      color: var(--white);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100svh;
+      background:
+        radial-gradient(ellipse at 50% 45%, rgba(28, 37, 39, .48), transparent 65%),
+        var(--bg);
+    }
+
+    button, select { font: inherit; }
+
+    .cockpit {
+      width: min(100%, 1800px);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: clamp(10px, 1.5vw, 24px);
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      gap: clamp(8px, 1vw, 16px);
+    }
+
+    .topline {
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: clamp(.7rem, .9vw, .85rem);
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .brand { color: var(--white); }
+    .brand span { color: var(--green); }
+
+    .top-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .connection {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .connection::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--yellow);
+      box-shadow: 0 0 9px currentColor;
+      content: "";
+    }
+
+    .connection.connected::before { background: var(--green); }
+    .connection.error::before { background: var(--red); }
+
+    .vehicle-select {
+      max-width: min(36vw, 260px);
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: var(--panel);
+      color: var(--white);
+      font-size: .8rem;
+      letter-spacing: .04em;
+    }
+
+    .rpm-panel {
+      padding: clamp(11px, 1.5vw, 20px);
+      border: 1px solid #262d2f;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #121618, #0b0d0e);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .45), inset 0 1px rgba(255,255,255,.035);
+    }
+
+    .rpm-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .rpm-readout {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .rpm-number {
+      min-width: 4.2ch;
+      font-family: var(--lcd);
+      font-size: clamp(1.8rem, 4vw, 3.2rem);
+      font-variant-numeric: tabular-nums;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: .02em;
+    }
+
+    .rpm-unit, .limit-text {
+      color: var(--muted);
+      font-size: clamp(.62rem, .85vw, .82rem);
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+
+    .limit-text strong { color: var(--red); }
+
+    .shift-lights {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: clamp(4px, .8vw, 12px);
+      margin: 0 auto 7px;
+      width: min(54%, 500px);
+    }
+
+    .shift-light {
+      height: clamp(7px, 1vw, 12px);
+      border-radius: 999px;
+      background: #262c2e;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.85);
+      transition: background .08s, box-shadow .08s;
+    }
+
+    .shift-light.on:nth-child(-n+3) { background: var(--green); box-shadow: 0 0 10px rgba(25,239,89,.8); }
+    .shift-light.on:nth-child(n+4):nth-child(-n+5) { background: var(--yellow); box-shadow: 0 0 10px rgba(255,213,42,.75); }
+    .shift-light.on:nth-child(n+6) { background: var(--red); box-shadow: 0 0 10px rgba(255,65,72,.8); }
+
+    .rpm-track {
+      position: relative;
+      height: clamp(18px, 2.5vw, 30px);
+      overflow: hidden;
+      border: 1px solid #323a3c;
+      border-radius: 4px;
+      background:
+        repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(255,255,255,.19) calc(10% - 1px) 10%),
+        #202628;
+    }
+
+    .rpm-fill {
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--green) 0 66%, var(--yellow) 82%, var(--orange) 92%, var(--red) 100%);
+      box-shadow: 0 0 18px rgba(25,239,89,.3);
+      transition: width .12s linear;
+    }
+
+    .rpm-redline {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 100%;
+      width: 2px;
+      background: #fff;
+      box-shadow: 0 0 8px #fff;
+    }
+
+    .rpm-scale {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      color: #879194;
+      font-size: clamp(.58rem, .75vw, .72rem);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .main-grid {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(180px, .82fr) minmax(280px, 1.65fr) minmax(190px, .88fr);
+      grid-template-rows: minmax(0, 1fr);
+      gap: clamp(8px, 1vw, 16px);
+    }
+
+    .panel {
+      min-width: 0;
+      border: 1px solid #262d2f;
+      border-radius: 8px;
+      background: linear-gradient(145deg, rgba(20,24,26,.98), rgba(10,12,13,.98));
+      box-shadow: inset 0 1px rgba(255,255,255,.035), 0 8px 24px rgba(0,0,0,.35);
+    }
+
+    .panel-title {
+      color: #abb4b5;
+      font-size: clamp(.62rem, .8vw, .78rem);
+      font-weight: 900;
+      letter-spacing: .16em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .g-panel {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: clamp(10px, 1.4vw, 20px);
+    }
+
+    .target {
+      position: relative;
+      width: min(100%, 34vh, 420px);
+      aspect-ratio: 1;
+      justify-self: center;
+      overflow: hidden;
+      border: 1px solid #465052;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, transparent 23%, rgba(95,110,111,.45) 23.4%, transparent 24%),
+        radial-gradient(circle, transparent 48%, rgba(95,110,111,.45) 48.4%, transparent 49%),
+        radial-gradient(circle, transparent 73%, rgba(95,110,111,.45) 73.4%, transparent 74%),
+        radial-gradient(circle, #14191b, #070909 72%);
+      box-shadow: inset 0 0 25px rgba(0,0,0,.9), 0 0 22px rgba(32,217,244,.05);
+    }
+
+    .target::before, .target::after {
+      position: absolute;
+      background: rgba(132,148,150,.35);
+      content: "";
+    }
+
+    .target::before { top: 50%; left: 7%; width: 86%; height: 1px; }
+    .target::after { top: 7%; left: 50%; width: 1px; height: 86%; }
+
+    .target-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 7px;
+      height: 7px;
+      border: 1px solid #cad2d2;
+      border-radius: 50%;
+      background: #1b2021;
+      transform: translate(-50%, -50%);
+    }
+
+    .g-ball {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: clamp(13px, 1.5vw, 20px);
+      height: clamp(13px, 1.5vw, 20px);
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 13px rgba(32,217,244,.95), inset 0 0 5px #fff;
+      transform: translate(-50%, -50%);
+      transition: left .12s linear, top .12s linear;
+    }
+
+    .g-axis {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: #909b9d;
+      font-size: clamp(.58rem, .75vw, .72rem);
+      font-weight: 800;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .g-readout {
+      color: var(--white);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .center-panel {
+      display: grid;
+      grid-template-rows: auto minmax(0,1fr) auto;
+      align-items: center;
+      padding: clamp(12px, 1.8vw, 26px);
+      text-align: center;
+    }
+
+    .vehicle-name {
+      overflow: hidden;
+      color: #9ba5a7;
+      font-size: clamp(.65rem, .9vw, .86rem);
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .primary-readouts {
+      display: grid;
+      grid-template-columns: .8fr 1.2fr;
+      align-items: center;
+      gap: clamp(8px, 1.5vw, 22px);
+    }
+
+    .readout { min-width: 0; }
+
+    .readout-value {
+      color: #f5f7f6;
+      font-family: var(--lcd);
+      font-size: clamp(4rem, 14vw, 13rem);
+      font-variant-numeric: tabular-nums;
+      font-weight: 900;
+      line-height: .88;
+      text-shadow: 0 0 20px rgba(255,255,255,.1);
+    }
+
+    .gear-value {
+      color: var(--green);
+      font-size: clamp(5rem, 16vw, 14rem);
+      text-shadow: 0 0 24px rgba(25,239,89,.22);
+    }
+
+    .readout-label {
+      margin-top: 12px;
+      color: #9da7a9;
+      font-size: clamp(.65rem, .95vw, .9rem);
+      font-weight: 900;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+
+    .speed-unit { color: var(--yellow); }
+
+    .center-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(12px, 2vw, 30px);
+      color: #a1abad;
+      font-size: clamp(.63rem, .8vw, .78rem);
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .center-footer strong { color: var(--white); font-variant-numeric: tabular-nums; }
+
+    .vertical-gauges {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(7px, .8vw, 12px);
+      padding: clamp(9px, 1vw, 15px);
+    }
+
+    .v-gauge {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto minmax(90px, 1fr) auto auto;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .v-gauge .panel-title { font-size: clamp(.55rem, .7vw, .7rem); }
+
+    .vertical-track {
+      position: relative;
+      width: min(100%, 76px);
+      height: 100%;
+      min-height: 100px;
+      justify-self: center;
+      overflow: hidden;
+      border: 1px solid #343c3e;
+      border-radius: 5px;
+      background:
+        repeating-linear-gradient(0deg, transparent 0 calc(20% - 1px), rgba(255,255,255,.18) calc(20% - 1px) 20%),
+        #222829;
+    }
+
+    .vertical-fill {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 0;
+      background: linear-gradient(0deg, var(--green), var(--yellow) 72%, var(--red));
+      transition: height .15s linear;
+    }
+
+    .vertical-fill.boost { background: linear-gradient(0deg, var(--cyan), #158eff 75%, var(--yellow)); }
+
+    .v-value {
+      font-size: clamp(1.05rem, 2vw, 1.8rem);
+      font-variant-numeric: tabular-nums;
+      font-weight: 900;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .v-unit {
+      color: var(--muted);
+      font-size: clamp(.55rem, .68vw, .68rem);
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-align: center;
+    }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: clamp(8px, 1vw, 16px);
+    }
+
+    .level-card {
+      min-width: 0;
+      padding: clamp(10px, 1.2vw, 17px);
+    }
+
+    .level-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 9px;
+      color: #aab4b5;
+      font-size: clamp(.63rem, .8vw, .78rem);
+      font-weight: 900;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .level-value {
+      color: var(--white);
+      font-size: clamp(1rem, 1.8vw, 1.65rem);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .level-value small {
+      color: #aab4b5;
+      font-size: .56em;
+      letter-spacing: .05em;
+    }
+
+    .level-track {
+      height: clamp(12px, 1.5vw, 19px);
+      overflow: hidden;
+      border: 1px solid #343c3e;
+      border-radius: 4px;
+      background:
+        repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(255,255,255,.16) calc(10% - 1px) 10%),
+        #222829;
+    }
+
+    .level-fill {
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--green), var(--yellow) 78%, var(--red));
+      transition: width .15s linear;
+    }
+
+    .level-fill.power { background: linear-gradient(90deg, var(--cyan), #308eff); }
+    .level-fill.torque { background: linear-gradient(90deg, #a56bff, #ec66ff); }
+
+    .no-data {
+      color: var(--muted);
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+
+    @media (min-width: 1000px) and (min-height: 580px) {
+      .cockpit { height: 100svh; }
+    }
+
+    @media (max-width: 760px) {
+      .cockpit { gap: 8px; padding: 8px; }
+      .topline { font-size: .62rem; letter-spacing: .1em; }
+      .top-controls { gap: 7px; }
+      .vehicle-select { max-width: 42vw; font-size: .7rem; }
+      .connection { max-width: 84px; overflow: hidden; text-overflow: ellipsis; }
+      .main-grid { grid-template-columns: minmax(112px, .75fr) minmax(170px, 1.35fr) minmax(116px, .75fr); gap: 7px; }
+      .panel-title { letter-spacing: .1em; }
+      .g-panel { padding: 8px; }
+      .target { width: min(100%, 25vh); }
+      .g-axis { font-size: .52rem; }
+      .center-panel { padding: 10px 6px; }
+      .readout-value { font-size: clamp(3.5rem, 17vw, 8rem); }
+      .gear-value { font-size: clamp(4.2rem, 19vw, 9rem); }
+      .vertical-gauges { padding: 7px 5px; gap: 5px; }
+      .v-gauge { gap: 5px; }
+      .bottom-grid { gap: 7px; }
+      .level-card { padding: 8px; }
+    }
+
+    @media (max-width: 560px), (orientation: portrait) and (max-width: 760px) {
+      .cockpit { min-height: 100svh; grid-template-rows: auto auto auto auto; }
+      .topline { align-items: flex-start; }
+      .top-controls { flex-direction: column-reverse; align-items: flex-end; }
+      .main-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-rows: minmax(210px, 40svh) minmax(180px, auto);
+      }
+      .center-panel { grid-column: 1 / -1; grid-row: 1; }
+      .g-panel { grid-column: 1; grid-row: 2; min-height: 180px; }
+      .target { width: min(100%, 20vh, 220px); }
+      .vertical-gauges { grid-column: 2; grid-row: 2; min-height: 180px; }
+      .primary-readouts { max-width: 450px; width: 100%; justify-self: center; }
+      .readout-value { font-size: clamp(4rem, 18vw, 7rem); }
+      .gear-value { font-size: clamp(5rem, 22vw, 8rem); }
+      .bottom-grid { grid-template-columns: 1fr; }
+      .level-heading { margin-bottom: 6px; }
+      .rpm-number { font-size: 1.65rem; }
+      .shift-lights { width: 70%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="cockpit" aria-label="Painel de telemetria automotiva">
+    <header class="topline">
+      <div class="brand">FT600 <span>// TELEMETRIA</span></div>
+      <div class="top-controls">
+        <span class="connection" id="connectionState" role="status">CONECTANDO</span>
+        <select class="vehicle-select" id="vehicleSelect" aria-label="Selecionar veículo">
+          <option value="">Todos os veículos</option>
+        </select>
+      </div>
+    </header>
+
+    <section class="rpm-panel" aria-label="Rotação do motor">
+      <div class="rpm-heading">
+        <div class="rpm-readout">
+          <span class="rpm-number" id="rpmValue">0</span>
+          <span class="rpm-unit">RPM</span>
+        </div>
+        <span class="limit-text">CORTE <strong id="rpmLimit">11.000</strong></span>
+      </div>
+      <div class="shift-lights" aria-label="Shift lights">
+        <span class="shift-light"></span><span class="shift-light"></span><span class="shift-light"></span>
+        <span class="shift-light"></span><span class="shift-light"></span><span class="shift-light"></span>
+        <span class="shift-light"></span>
+      </div>
+      <div class="rpm-track" role="meter" aria-label="RPM de 0 a 11000" aria-valuemin="0" aria-valuemax="11000" aria-valuenow="0">
+        <div class="rpm-fill" id="rpmFill"></div>
+        <div class="rpm-redline" id="rpmRedline"></div>
+      </div>
+      <div class="rpm-scale"><span>0</span><span>5.500</span><span>11.000 RPM</span></div>
+    </section>
+
+    <section class="main-grid" aria-label="Instrumentos principais">
+      <section class="panel g-panel" aria-label="Aceleração G">
+        <div class="panel-title">Força G // Chassi</div>
+        <div class="target" aria-label="Alvo de aceleração lateral e longitudinal">
+          <span class="target-center"></span>
+          <span class="g-ball" id="gBall"></span>
+        </div>
+        <div class="g-axis">
+          <span>LAT <b class="g-readout" id="gLatValue">0.00</b></span>
+          <span>LONG <b class="g-readout" id="gLongValue">0.00</b></span>
+        </div>
+      </section>
+
+      <section class="panel center-panel" aria-label="Marcha e velocidade">
+        <div class="vehicle-name" id="vehicleName">AGUARDANDO TELEMETRIA</div>
+        <div class="primary-readouts">
+          <div class="readout">
+            <div class="readout-value gear-value" id="gearValue">--</div>
+            <div class="readout-label">Marcha</div>
+          </div>
+          <div class="readout">
+            <div class="readout-value" id="speedValue">0</div>
+            <div class="readout-label speed-unit">KM/H</div>
+          </div>
+        </div>
+        <div class="center-footer">
+          <span>TPS <strong id="tpsInline">0%</strong></span>
+          <span>FREIO <strong id="brakeValue">0%</strong></span>
+          <span id="packetTime" class="no-data">SEM SINAL</span>
+        </div>
+      </section>
+
+      <section class="panel vertical-gauges" aria-label="Pressão do turbo e temperatura do óleo">
+        <div class="v-gauge">
+          <div class="panel-title">Turbo P.</div>
+          <div class="vertical-track" role="meter" aria-label="Pressão do turbo">
+            <div class="vertical-fill boost" id="boostFill"></div>
+          </div>
+          <div class="v-value" id="boostValue">0.00</div>
+          <div class="v-unit">BAR</div>
+        </div>
+        <div class="v-gauge">
+          <div class="panel-title">Oil Temp.</div>
+          <div class="vertical-track" role="meter" aria-label="Temperatura do óleo">
+            <div class="vertical-fill" id="oilFill"></div>
+          </div>
+          <div class="v-value" id="oilValue">--</div>
+          <div class="v-unit">°C</div>
+        </div>
+      </section>
+    </section>
+
+    <section class="bottom-grid" aria-label="Potência, torque e acelerador">
+      <div class="panel level-card">
+        <div class="level-heading"><span>TPS</span><span class="level-value" id="tpsValue">0<small>%</small></span></div>
+        <div class="level-track" role="meter" aria-label="Posição do acelerador">
+          <div class="level-fill" id="tpsFill"></div>
+        </div>
+      </div>
+      <div class="panel level-card">
+        <div class="level-heading"><span>Potência Líquida</span><span class="level-value"><span id="powerValue">0</span><small> CV</small></span></div>
+        <div class="level-track" role="meter" aria-label="Potência líquida">
+          <div class="level-fill power" id="powerFill"></div>
+        </div>
+      </div>
+      <div class="panel level-card">
+        <div class="level-heading"><span>Torque</span><span class="level-value"><span id="torqueValue">0</span><small> Nm</small></span></div>
+        <div class="level-track" role="meter" aria-label="Torque do motor">
+          <div class="level-fill torque" id="torqueFill"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const RPM_SCALE_MAX = 11000;
+      const BOOST_SCALE_MAX = 3;
+      const OIL_TEMP_SCALE_MAX = 140;
+      const POWER_SCALE_MAX = 1200;
+      const TORQUE_SCALE_MAX = 2000;
+      const G_FORCE_SCALE_MAX = 1.5;
+      const elements = {
+        connection: document.getElementById("connectionState"),
+        vehicleSelect: document.getElementById("vehicleSelect"),
+        rpmValue: document.getElementById("rpmValue"),
+        rpmLimit: document.getElementById("rpmLimit"),
+        rpmFill: document.getElementById("rpmFill"),
+        rpmRedline: document.getElementById("rpmRedline"),
+        rpmTrack: document.querySelector(".rpm-track"),
+        shiftLights: [...document.querySelectorAll(".shift-light")],
+        gearValue: document.getElementById("gearValue"),
+        speedValue: document.getElementById("speedValue"),
+        vehicleName: document.getElementById("vehicleName"),
+        packetTime: document.getElementById("packetTime"),
+        tpsInline: document.getElementById("tpsInline"),
+        tpsValue: document.getElementById("tpsValue"),
+        tpsFill: document.getElementById("tpsFill"),
+        brakeValue: document.getElementById("brakeValue"),
+        boostFill: document.getElementById("boostFill"),
+        boostValue: document.getElementById("boostValue"),
+        oilFill: document.getElementById("oilFill"),
+        oilValue: document.getElementById("oilValue"),
+        powerValue: document.getElementById("powerValue"),
+        powerFill: document.getElementById("powerFill"),
+        torqueValue: document.getElementById("torqueValue"),
+        torqueFill: document.getElementById("torqueFill"),
+        gBall: document.getElementById("gBall"),
+        gLatValue: document.getElementById("gLatValue"),
+        gLongValue: document.getElementById("gLongValue"),
+      };
+      let eventSource;
+
+      function numberOr(value, fallback = 0) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : fallback;
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function setWidth(element, value, max) {
+        element.style.width = `${clamp((value / max) * 100, 0, 100)}%`;
+      }
+
+      function setHeight(element, value, max) {
+        element.style.height = `${clamp((value / max) * 100, 0, 100)}%`;
+      }
+
+      function setConnection(text, state) {
+        elements.connection.textContent = text;
+        elements.connection.classList.toggle("connected", state === "connected");
+        elements.connection.classList.toggle("error", state === "error");
+      }
+
+      function renderTelemetry(packet) {
+        const measurements = packet.measurements || {};
+        const metadata = packet.metadata || {};
+        const rpm = Math.max(0, numberOr(measurements.rpm));
+        const limit = Math.max(1, numberOr(measurements.max_rpm, RPM_SCALE_MAX));
+        const speed = Math.max(0, numberOr(measurements.speed_kmh));
+        const throttle = clamp(numberOr(measurements.throttle_pct), 0, 100);
+        const brake = clamp(numberOr(measurements.brake_pct), 0, 100);
+        const boost = numberOr(measurements.boost_pressure_bar);
+        const oilTemp = numberOr(measurements.oil_temp_c, NaN);
+        const power = Math.max(0, numberOr(measurements.power_hp));
+        const torque = Math.max(0, numberOr(measurements.torque_nm));
+        const lateralG = numberOr(measurements.g_force_lat);
+        const longitudinalG = numberOr(measurements.g_force_long);
+        const rpmPercent = clamp((rpm / RPM_SCALE_MAX) * 100, 0, 100);
+
+        elements.rpmValue.textContent = Math.round(rpm).toLocaleString("pt-BR");
+        elements.rpmLimit.textContent = Math.round(limit).toLocaleString("pt-BR");
+        elements.rpmFill.style.width = `${rpmPercent}%`;
+        elements.rpmRedline.style.left = `${clamp((limit / RPM_SCALE_MAX) * 100, 0, 100)}%`;
+        elements.rpmTrack.setAttribute("aria-valuenow", String(Math.round(clamp(rpm, 0, RPM_SCALE_MAX))));
+        const shiftThresholds = [.65, .72, .79, .86, .91, .96, .99];
+        elements.shiftLights.forEach((light, index) => {
+          light.classList.toggle("on", rpm >= limit * shiftThresholds[index]);
+        });
+        elements.gearValue.textContent = measurements.gear || "--";
+        elements.speedValue.textContent = Math.round(speed).toLocaleString("pt-BR");
+        elements.vehicleName.textContent = metadata.model || metadata.vehicle_id || "VEÍCULO CONECTADO";
+        elements.tpsValue.innerHTML = `${Math.round(throttle)}<small>%</small>`;
+        elements.tpsInline.textContent = `${Math.round(throttle)}%`;
+        elements.tpsFill.style.width = `${throttle}%`;
+        elements.brakeValue.textContent = `${Math.round(brake)}%`;
+        elements.boostValue.textContent = `${boost.toFixed(2)}`;
+        setHeight(elements.boostFill, Math.max(0, boost), BOOST_SCALE_MAX);
+        elements.oilValue.textContent = Number.isFinite(oilTemp) ? `${Math.round(oilTemp)}` : "--";
+        setHeight(elements.oilFill, Math.max(0, oilTemp), OIL_TEMP_SCALE_MAX);
+        elements.powerValue.textContent = Math.round(power).toLocaleString("pt-BR");
+        setWidth(elements.powerFill, power, POWER_SCALE_MAX);
+        elements.torqueValue.textContent = Math.round(torque).toLocaleString("pt-BR");
+        setWidth(elements.torqueFill, torque, TORQUE_SCALE_MAX);
+        elements.gLatValue.textContent = lateralG.toFixed(2);
+        elements.gLongValue.textContent = longitudinalG.toFixed(2);
+        const ballX = 50 + clamp(lateralG / G_FORCE_SCALE_MAX, -1, 1) * 42;
+        const ballY = 50 - clamp(longitudinalG / G_FORCE_SCALE_MAX, -1, 1) * 42;
+        elements.gBall.style.left = `${ballX}%`;
+        elements.gBall.style.top = `${ballY}%`;
+        const timestamp = packet.timestamp ? new Date(packet.timestamp) : new Date();
+        elements.packetTime.textContent = Number.isNaN(timestamp.getTime())
+          ? "AO VIVO"
+          : timestamp.toLocaleTimeString("pt-BR");
+        elements.packetTime.classList.remove("no-data");
+        setConnection("AO VIVO", "connected");
+      }
+
+      function connectStream() {
+        if (eventSource) eventSource.close();
+        const vehicleId = elements.vehicleSelect.value;
+        const query = vehicleId ? `?vehicle_id=${encodeURIComponent(vehicleId)}` : "";
+        eventSource = new EventSource(`/api/v1/telemetry/stream${query}`);
+        setConnection("CONECTANDO", "pending");
+
+        eventSource.onopen = () => setConnection("CONECTADO", "connected");
+        eventSource.onmessage = (event) => {
+          try {
+            renderTelemetry(JSON.parse(event.data));
+          } catch (error) {
+            console.error("Não foi possível processar um pacote de telemetria:", error);
+          }
+        };
+        eventSource.onerror = () => setConnection("RECONECTANDO", "error");
+      }
+
+      async function loadVehicles() {
+        try {
+          const response = await fetch("/api/v1/telemetry/vehicles");
+          if (!response.ok) throw new Error(`Falha ao carregar veículos: HTTP ${response.status}`);
+          const result = await response.json();
+          const selected = elements.vehicleSelect.value;
+          const vehicles = Array.isArray(result.vehicles) ? result.vehicles : [];
+          elements.vehicleSelect.replaceChildren(new Option("Todos os veículos", ""));
+          vehicles.forEach((vehicle) => {
+            const id = String(vehicle.vehicle_id || "");
+            if (id) elements.vehicleSelect.add(new Option(
+              `${id}${vehicle.model ? ` · ${vehicle.model}` : ""}`,
+              id,
+            ));
+          });
+          if (vehicles.some((vehicle) => vehicle.vehicle_id === selected)) {
+            elements.vehicleSelect.value = selected;
+          }
+        } catch (error) {
+          console.error("Não foi possível carregar a lista de veículos:", error);
+        }
+      }
+
+      elements.vehicleSelect.addEventListener("change", connectStream);
+      loadVehicles();
+      connectStream();
+      window.setInterval(loadVehicles, 10000);
+    })();
+  </script>
+</body>
+</html>

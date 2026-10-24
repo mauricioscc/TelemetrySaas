@@ -24,6 +24,34 @@ def test_dashboard_route_returns_html(client):
     assert b"Boost Pressure" in response.data
 
 
+def test_ft600_dashboard_route_returns_separate_html(client):
+    response = client.get("/dashboard/ft600")
+    assert response.status_code == 200
+    assert "text/html" in response.content_type
+    assert b"FT600" in response.data
+    assert b"TELEMETRIA" in response.data
+    assert b"11000" in response.data
+
+
+def test_sanitize_measurements_preserves_longitudinal_g_force():
+    from app.services.telemetry_svc import telemetry_service
+
+    clean = telemetry_service._sanitize_measurements(
+        {
+            "rpm": 3500,
+            "speed_kmh": 80,
+            "boost_pressure_bar": 0.5,
+            "oil_temp_c": 92,
+            "g_force_lat": 0.42,
+            "g_force_long": -0.18,
+        },
+        "",
+    )
+
+    assert clean["g_force_lat"] == 0.42
+    assert clean["g_force_long"] == -0.18
+
+
 def test_ingest_single_valid_telemetry(client):
     """Verifica o endpoint POST /api/v1/telemetry para payload único."""
     payload = {
