@@ -35,6 +35,12 @@ def test_ft600_dashboard_route_returns_separate_html(client):
     assert b'id="shiftToneButton"' in response.data
     assert b'id="vehicleSelect"' not in response.data
     assert b"LIMITER_BEEP_INTERVAL_MS = 80" in response.data
+    assert b"const SHIFT_WARNING_RATIO = 0.95" in response.data
+    assert b"const LIMITER_RATIO =" in response.data
+    assert b"(rpm / limit) * 100" in response.data
+    assert b'aria-valuemax", String(Math.round(limit))' in response.data
+    assert b"50 - clamp(lateralG" in response.data
+    assert b"50 + clamp(longitudinalG" in response.data
 
 
 def test_sanitize_measurements_preserves_longitudinal_g_force():

@@ -218,7 +218,7 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      left: 100%;
+      right: 0;
       width: 2px;
       background: #fff;
       box-shadow: 0 0 8px #fff;
@@ -693,7 +693,7 @@
         <div class="rpm-fill" id="rpmFill"></div>
         <div class="rpm-redline" id="rpmRedline"></div>
       </div>
-      <div class="rpm-scale"><span>0</span><span>5.500</span><span>11.000 RPM</span></div>
+      <div class="rpm-scale"><span>0</span><span id="rpmMidScale">5.500</span><span id="rpmMaxScale">11.000 RPM</span></div>
     </section>
 
     <section class="main-grid" aria-label="Instrumentos principais">
@@ -772,14 +772,14 @@
 
   <script>
     (() => {
-      const RPM_SCALE_MAX = 11000;
+      const DEFAULT_RPM_LIMIT = 11000;
       const BOOST_SCALE_MAX = 3;
       const OIL_TEMP_SCALE_MAX = 140;
       const POWER_SCALE_MAX = 1200;
       const TORQUE_SCALE_MAX = 2000;
       const G_FORCE_SCALE_MAX = 1.5;
-      const SHIFT_WARNING_RATIO = 0.92;
-      const LIMITER_RATIO = 0.98;
+      const SHIFT_WARNING_RATIO = 0.95;
+      const LIMITER_RATIO = 0.92;
       const LIMITER_BEEP_INTERVAL_MS = 80;
       const SHIFT_PITCH_HZ = 2650;
       const SHIFT_BEEP_DURATION_SECONDS = 0.065;
@@ -796,6 +796,8 @@
         rpmLimit: document.getElementById("rpmLimit"),
         rpmFill: document.getElementById("rpmFill"),
         rpmRedline: document.getElementById("rpmRedline"),
+        rpmMidScale: document.getElementById("rpmMidScale"),
+        rpmMaxScale: document.getElementById("rpmMaxScale"),
         rpmTrack: document.querySelector(".rpm-track"),
         shiftLights: [...document.querySelectorAll(".shift-light")],
         gearValue: document.getElementById("gearValue"),
@@ -822,7 +824,7 @@
       let audioEnabled = false;
       let audioEngine;
       let currentRpm = 0;
-      let activeMaxRpm = RPM_SCALE_MAX;
+      let activeMaxRpm = DEFAULT_RPM_LIMIT;
       let hasPlayedShiftBeep = false;
       let isTelemetryFresh = false;
       let telemetryWatchdogTimer;
@@ -994,7 +996,7 @@
         const measurements = packet.measurements || {};
         const metadata = packet.metadata || {};
         const rpm = Math.max(0, numberOr(measurements.rpm));
-        const limit = Math.max(1, numberOr(measurements.max_rpm, RPM_SCALE_MAX));
+        const limit = Math.max(1, numberOr(measurements.max_rpm, DEFAULT_RPM_LIMIT));
         currentRpm = rpm;
         activeMaxRpm = limit;
         const speed = Math.max(0, numberOr(measurements.speed_kmh));
@@ -1006,14 +1008,16 @@
         const torque = Math.max(0, numberOr(measurements.torque_nm));
         const lateralG = numberOr(measurements.g_force_lat);
         const longitudinalG = numberOr(measurements.g_force_long);
-        const rpmPercent = clamp((rpm / RPM_SCALE_MAX) * 100, 0, 100);
+        const rpmPercent = clamp((rpm / limit) * 100, 0, 100);
 
         elements.rpmValue.textContent = Math.round(rpm).toLocaleString("pt-BR");
         elements.rpmLimit.textContent = Math.round(limit).toLocaleString("pt-BR");
         elements.rpmFill.style.width = `${rpmPercent}%`;
-        elements.rpmRedline.style.left = `${clamp((limit / RPM_SCALE_MAX) * 100, 0, 100)}%`;
-        elements.rpmTrack.setAttribute("aria-valuemax", String(RPM_SCALE_MAX));
-        elements.rpmTrack.setAttribute("aria-valuenow", String(Math.round(clamp(rpm, 0, RPM_SCALE_MAX))));
+        elements.rpmTrack.setAttribute("aria-valuemax", String(Math.round(limit)));
+        elements.rpmTrack.setAttribute("aria-valuenow", String(Math.round(clamp(rpm, 0, limit))));
+        elements.rpmTrack.setAttribute("aria-label", `RPM de 0 a ${Math.round(limit).toLocaleString("pt-BR")}`);
+        elements.rpmMidScale.textContent = Math.round(limit / 2).toLocaleString("pt-BR");
+        elements.rpmMaxScale.textContent = `${Math.round(limit).toLocaleString("pt-BR")} RPM`;
         const shiftThresholds = [.65, .72, .79, .86, .91, .96, .99];
         elements.shiftLights.forEach((light, index) => {
           light.classList.toggle("on", rpm >= limit * shiftThresholds[index]);
@@ -1035,8 +1039,8 @@
         setWidth(elements.torqueFill, torque, TORQUE_SCALE_MAX);
         elements.gLatValue.textContent = lateralG.toFixed(2);
         elements.gLongValue.textContent = longitudinalG.toFixed(2);
-        const ballX = 50 + clamp(lateralG / G_FORCE_SCALE_MAX, -1, 1) * 42;
-        const ballY = 50 - clamp(longitudinalG / G_FORCE_SCALE_MAX, -1, 1) * 42;
+        const ballX = 50 - clamp(lateralG / G_FORCE_SCALE_MAX, -1, 1) * 42;
+        const ballY = 50 + clamp(longitudinalG / G_FORCE_SCALE_MAX, -1, 1) * 42;
         elements.gBall.style.left = `${ballX}%`;
         elements.gBall.style.top = `${ballY}%`;
         const timestamp = packet.timestamp ? new Date(packet.timestamp) : new Date();

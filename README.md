@@ -92,9 +92,11 @@ O layout responsivo apresenta:
 * Marcha e velocidade em destaque, alvo circular para aceleração lateral e longitudinal, e medidores para TPS, potência líquida, torque, pressão do turbo e temperatura do óleo.
 * Recepção do stream SSE global, sem filtro por veículo no painel simplificado.
 
-O indicador longitudinal utiliza `g_force_long`. O bridge `scripts/forza_bridge.py` calcula esse valor a partir da aceleração longitudinal do pacote do Forza; outros emissores podem enviar o mesmo campo em `measurements`. Se ele estiver ausente, a leitura longitudinal aparece como zero.
+O indicador longitudinal utiliza `g_force_long`. O bridge `scripts/forza_bridge.py` calcula esse valor a partir da aceleração longitudinal do pacote do Forza; outros emissores podem enviar o mesmo campo em `measurements`. Se ele estiver ausente, a leitura longitudinal aparece como zero. O alvo posiciona a esfera para baixo durante aceleração e para cima durante frenagem. A barra de RPM e os rótulos da escala usam o `max_rpm` recebido para o carro atual (com 11.000 RPM como fallback).
 
-O painel FT600 também possui um botão **SHIFT TONE** (desativado por padrão): ao atingir 92% do limite de RPM emite um beep único; acima de 98% repete o beep a cada 80 ms. O áudio é sintetizado pela Web Audio API e para quando o RPM cai abaixo do corte, o áudio é desativado ou a telemetria fica desatualizada. O ícone de tela cheia alterna entre expandir e sair da tela cheia.
+O painel FT600 também possui um botão **SHIFT TONE** (desativado por padrão): ao atingir 95% do limite de RPM emite um beep único; acima de 98% repete o beep a cada 80 ms. O áudio é sintetizado pela Web Audio API e para quando o RPM cai abaixo do corte, o áudio é desativado ou a telemetria fica desatualizada. O ícone de tela cheia alterna entre expandir e sair da tela cheia.
+
+O bridge atual envia RPM, velocidade, pressão de turbo, temperatura de óleo (valor fixo no parser), marcha, acelerador, freio, potência, torque e forças G. Ele **não decodifica nem envia estados de controle de tração, controle de estabilidade, controle de largada ou ABS**; esses indicadores não estão disponíveis no painel nesta integração.
 
 ---
 
