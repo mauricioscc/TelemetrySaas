@@ -542,24 +542,108 @@
     }
 
     @media (max-width: 560px), (orientation: portrait) and (max-width: 760px) {
-      .cockpit { min-height: 100svh; grid-template-rows: auto auto auto auto; }
+      .cockpit {
+        min-height: 100svh;
+        min-height: 100dvh;
+        grid-template-rows: auto auto minmax(0, 1fr) auto;
+      }
       .topline { align-items: flex-start; }
       .top-controls { flex-direction: column-reverse; align-items: flex-end; }
       .main-grid {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        grid-template-rows: minmax(210px, 40svh) minmax(180px, auto);
+        grid-template-rows: minmax(170px, 27svh) minmax(135px, 22svh);
       }
       .center-panel { grid-column: 1 / -1; grid-row: 1; }
-      .g-panel { grid-column: 1; grid-row: 2; min-height: 180px; }
+      .g-panel { grid-column: 1; grid-row: 2; min-height: 135px; }
       .target { width: min(100%, 20vh, 220px); }
-      .vertical-gauges { grid-column: 2; grid-row: 2; min-height: 180px; }
+      .vertical-gauges { grid-column: 2; grid-row: 2; min-height: 135px; }
       .primary-readouts { max-width: 450px; width: 100%; justify-self: center; }
-      .readout-value { font-size: clamp(4rem, 18vw, 7rem); }
-      .gear-value { font-size: clamp(5rem, 22vw, 8rem); }
-      .bottom-grid { grid-template-columns: 1fr; }
-      .level-heading { margin-bottom: 6px; }
+      .readout-value { font-size: clamp(3.2rem, 12vw, 5.5rem); }
+      .gear-value { font-size: clamp(4rem, 15vw, 6.5rem); }
+      .bottom-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+      .level-card { padding: 7px; }
+      .level-heading { display: grid; gap: 3px; margin-bottom: 5px; font-size: .56rem; }
+      .level-value { font-size: 1rem; }
       .rpm-number { font-size: 1.65rem; }
       .shift-lights { width: 70%; }
+    }
+
+    @media (orientation: landscape) and (max-height: 600px) {
+      .cockpit {
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        min-height: 0;
+        padding:
+          max(4px, env(safe-area-inset-top))
+          max(6px, env(safe-area-inset-right))
+          max(4px, env(safe-area-inset-bottom))
+          max(6px, env(safe-area-inset-left));
+        grid-template-rows: auto auto minmax(0, 1fr) auto;
+        gap: clamp(3px, .8vh, 7px);
+      }
+
+      .topline {
+        min-height: 0;
+        font-size: clamp(.55rem, 1.7vh, .72rem);
+        letter-spacing: .1em;
+      }
+
+      .top-controls { gap: clamp(4px, 1vw, 9px); }
+      .connection { font-size: .58rem; }
+      .vehicle-select { max-width: 27vw; padding: 4px 6px; font-size: .65rem; }
+      .fullscreen-button { padding: 4px 7px; font-size: .58rem; }
+
+      .rpm-panel { padding: clamp(5px, 1.2vh, 8px) clamp(8px, 1.4vw, 14px); }
+      .rpm-heading { margin-bottom: 3px; }
+      .rpm-readout { gap: 6px; }
+      .rpm-number { font-size: clamp(1.2rem, 4.5vh, 2rem); }
+      .rpm-unit, .limit-text { font-size: clamp(.52rem, 1.5vh, .68rem); }
+      .shift-lights { width: min(50%, 420px); gap: 6px; margin-bottom: 3px; }
+      .shift-light { height: clamp(5px, 1.5vh, 8px); }
+      .rpm-track { height: clamp(11px, 3vh, 17px); }
+      .rpm-scale { margin-top: 2px; font-size: clamp(.48rem, 1.3vh, .62rem); }
+
+      .main-grid {
+        grid-template-columns: minmax(0, .78fr) minmax(0, 1.55fr) minmax(0, .82fr);
+        grid-template-rows: minmax(0, 1fr);
+        gap: clamp(4px, .8vw, 8px);
+      }
+
+      .g-panel { gap: 4px; padding: 5px; }
+      .panel-title { font-size: clamp(.5rem, 1.5vh, .65rem); letter-spacing: .08em; }
+      .target { width: min(100%, 23vh, 190px); }
+      .g-axis { font-size: clamp(.46rem, 1.3vh, .58rem); }
+      .center-panel { padding: 5px; }
+      .vehicle-name { font-size: clamp(.5rem, 1.4vh, .65rem); }
+      .primary-readouts { gap: 5px; }
+      .readout-value { font-size: clamp(2.8rem, 16vh, 6rem); }
+      .gear-value { font-size: clamp(3.4rem, 19vh, 7rem); }
+      .readout-label { margin-top: 4px; font-size: clamp(.5rem, 1.5vh, .68rem); }
+      .center-footer { gap: clamp(5px, 1vw, 12px); font-size: clamp(.48rem, 1.3vh, .6rem); }
+      .no-data { font-size: inherit; }
+      .vertical-gauges { min-height: 0; padding: 5px; gap: 5px; }
+      .v-gauge { grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 3px; }
+      .vertical-track { min-height: 0; width: min(100%, 48px); }
+      .v-value { font-size: clamp(.75rem, 2.4vh, 1.15rem); }
+      .v-unit { font-size: clamp(.46rem, 1.2vh, .58rem); }
+
+      .bottom-grid { grid-template-columns: 1.2fr 1fr 1fr; gap: clamp(4px, .8vw, 8px); }
+      .level-card { padding: 5px 8px; }
+      .level-heading { gap: 4px; margin-bottom: 4px; font-size: clamp(.5rem, 1.4vh, .65rem); }
+      .level-value { font-size: clamp(.85rem, 2.5vh, 1.2rem); }
+      .level-track { height: clamp(8px, 2vh, 12px); }
+    }
+
+    @media (orientation: landscape) and (max-height: 380px) {
+      .cockpit { gap: 3px; }
+      .rpm-panel { padding-top: 3px; padding-bottom: 3px; }
+      .rpm-scale { display: none; }
+      .shift-lights { margin-bottom: 2px; }
+      .g-panel { gap: 2px; }
+      .target { width: min(100%, 19vh, 140px); }
+      .center-footer { gap: 5px; }
+      .level-heading { margin-bottom: 2px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
