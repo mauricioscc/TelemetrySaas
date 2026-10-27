@@ -6,6 +6,7 @@ from werkzeug.exceptions import HTTPException
 
 from app.config import config_by_name, Config
 from app.repositories.mongo_client import mongo_client
+from app.services.telemetry_svc import telemetry_service
 
 
 def configure_logging(app: Flask) -> None:
@@ -88,14 +89,20 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     config_class = config_by_name.get(config_name, Config)
     app.config.from_object(config_class)
 
+    storage_mode = app.config["TELEMETRY_STORAGE"]
+    if storage_mode not in ("memory", "mongodb"):
+        raise ValueError("TELEMETRY_STORAGE deve ser 'memory' ou 'mongodb'.")
+
     # Configuração de Logs
     configure_logging(app)
 
-    # Inicializa conexão com MongoDB
-    mongo_client.init_app(
-        uri=app.config.get("MONGO_URI"),
-        db_name=app.config.get("MONGO_DB_NAME"),
-    )
+    telemetry_service.configure_storage(storage_mode)
+
+    if storage_mode == "mongodb":
+        mongo_client.init_app(
+            uri=app.config.get("MONGO_URI"),
+            db_name=app.config.get("MONGO_DB_NAME"),
+        )
 
     # Registra manipuladores globais de erro
     register_error_handlers(app)

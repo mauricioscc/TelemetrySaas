@@ -30,14 +30,18 @@ def health_check():
     health_status = {
         "status": "healthy",
         "environment": current_app.config.get("ENV", "development"),
+        "storage": current_app.config["TELEMETRY_STORAGE"],
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": "1.0.0",
     }
 
     if include_db:
-        db_health = mongo_client.check_health()
-        health_status["database"] = db_health
-        if db_health.get("status") not in ("connected", "unconfigured"):
-            health_status["status"] = "degraded"
+        if current_app.config["TELEMETRY_STORAGE"] == "mongodb":
+            db_health = mongo_client.check_health()
+            health_status["database"] = db_health
+            if db_health.get("status") not in ("connected", "unconfigured"):
+                health_status["status"] = "degraded"
+        else:
+            health_status["database"] = {"status": "disabled"}
 
     return jsonify(health_status), 200

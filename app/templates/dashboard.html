@@ -1094,7 +1094,7 @@
       <div class="controls-panel">
         <div class="card-title">Simulador & Inspetor</div>
         <p style="font-size:0.85rem; color:var(--text-muted);">
-          Conectado via <strong>SSE Instantâneo</strong> ao seu backend Flask e MongoDB Atlas.
+          Conectado via <strong>SSE Instantâneo</strong> ao backend Flask; MongoDB opcional.
         </p>
 
         <button class="btn-sim" id="btnToggleSim">
@@ -1104,7 +1104,7 @@
           <span id="btnSimText">LIGAR MOTOR VIRTUAL</span>
         </button>
 
-        <div class="card-title" style="margin-top: 6px;">Pacote BSON em Streaming:</div>
+        <div class="card-title" style="margin-top: 6px;">Pacote JSON em Streaming:</div>
         <div class="raw-json-box" id="rawJsonBox">Aguardando telemetria...</div>
       </div>
     </div>
@@ -1112,7 +1112,7 @@
 
   <!-- FOOTER -->
   <footer>
-    Apex Telemetry SaaS &bull; High Frequency Time-Series &bull; Ultra-Low Latency Streaming &bull; Antigravity IDE
+    Apex Telemetry SaaS &bull; Armazenamento em memória ou MongoDB opcional &bull; Streaming em tempo real
   </footer>
 
   <script>
