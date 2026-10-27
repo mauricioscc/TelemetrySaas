@@ -5,6 +5,8 @@ API e cockpits de alta performance para ingestão, análise e monitoramento de t
 Suporta simulação nativa de motor (Golf R 2.0 TSI Stage 2) e **integração direta via UDP com Forza Horizon 4 / 5**.
 Além do cockpit padrão em `/dashboard`, há um painel alternativo responsivo inspirado em clusters de corrida FuelTech, disponível em `/dashboard/ft600`.
 
+> **Status do projeto:** por enquanto, a aplicação é executada localmente e ainda não está hospedada nem pronta para ser exposta como serviço público. O `run.py` inicia o servidor de desenvolvimento do Flask, e as rotas da API não têm autenticação. Não exponha esse servidor diretamente à internet. O MongoDB usa uma instância local por padrão; uma URI do Atlas pode ser configurada no ambiente, mas isso não significa que a aplicação esteja hospedada.
+
 ---
 
 ## 🏗️ Arquitetura do Sistema
@@ -30,13 +32,15 @@ Além do cockpit padrão em `/dashboard`, há um painel alternativo responsivo i
       Streaming SSE (Instantâneo)         │ Persistência Assíncrona
                  ▼                        ▼
   ┌──────────────────────────────┐ ┌──────────────────────────────┐
-  │       Cockpits Web           │ │   MongoDB Atlas (Cloud)      │
+  │       Cockpits Web           │ │ MongoDB local ou Atlas*      │
   │   - Dashboard padrão         │ │ - Time-Series Collection     │
   │   - Painel FT600 responsivo  │ │ - Granularity: seconds       │
   │   - RPM, TPS e Shift Lights  │ │ - Compactação Temporal BSON  │
   │   - Força G, torque e turbo  │ └──────────────────────────────┘
   └──────────────────────────────┘
 ```
+
+*O Atlas é opcional e precisa ser configurado pelo usuário.*
 
 ---
 
@@ -73,8 +77,7 @@ TelemetrySaas/
 │   ├── test_health.py            # Testes de disponibilidade e resiliência
 │   └── test_telemetry.py         # Testes de ingestão unitária, batch, streaming e regras de negócio
 │
-├── .env                          # Variáveis de ambiente locais (URI do MongoDB Atlas, etc.)
-├── .env.example                  # Modelo de variáveis de ambiente
+├── .env.example                  # Modelo das variáveis de ambiente (o .env local não é versionado)
 ├── requirements.txt              # Dependências do projeto (Flask, pymongo, requests, pytest)
 ├── run.py                        # Ponto de entrada do servidor de desenvolvimento
 └── README.md
@@ -168,10 +171,10 @@ Em um segundo terminal, rode:
 
 | Método | Rota | Descrição |
 | :---: | :--- | :--- |
-| `GET` | `/` | Metadados do SaaS e links rápidos. |
+| `GET` | `/` | Metadados da API e links rápidos. |
 | `GET` | `/dashboard` | Cockpit padrão com gauges, gráficos e áudio. |
 | `GET` | `/dashboard/ft600` | Cockpit alternativo responsivo inspirado em clusters de corrida FT600. |
-| `GET` | `/api/v1/health` | Health check da aplicação e ping de integridade do MongoDB Atlas. |
+| `GET` | `/api/v1/health` | Health check da aplicação e ping de integridade do MongoDB configurado. |
 | `POST` | `/api/v1/telemetry` | Ingestão de telemetria individual ou em lote (batch de até 1.000 itens). |
 | `GET` | `/api/v1/telemetry/stream` | Stream SSE em tempo real com latência zero (`text/event-stream`). |
 | `GET` | `/api/v1/telemetry/latest` | Retorna o pacote mais recente (`?vehicle_id=...`). |
@@ -221,7 +224,7 @@ O projeto conta com testes para contratos HTTP, validações de limites físicos
 ## 🛠️ Tecnologias Utilizadas
 
 * **Backend:** Python 3.12, Flask 3, PyMongo 4, Requests, Python-Dotenv
-* **Banco de Dados:** MongoDB Atlas (Time-Series Collections)
+* **Banco de Dados:** MongoDB local por padrão; Atlas opcional, se configurado (Time-Series Collections)
 * **Frontend:** HTML5, Vanilla CSS (Dark Automotive Theme, Glassmorphism, CSS Transitions), Vanilla JS (Web Audio API, SSE EventSource, Canvas API)
 * **Qualidade de Software:** Pytest 8, Arquitetura em Camadas (Application Factory, Blueprints, Services, Repositories)
 * **Integrações:** Sockets UDP nativos para telemetria de simuladores e jogos (Forza Data Out)
