@@ -1,9 +1,21 @@
 # 🏎️ Apex Telemetry SaaS — Telemetria Automotiva em Alta Frequência
 
-API e cockpits de alta performance para ingestão, análise e monitoramento de telemetria automotiva em tempo real (RPM, velocidade, pressão de turbo, temperatura de óleo, marcha, potência, torque e aceleração), utilizando **Python 3**, **Flask**, **Streaming SSE**, **Síntese de Áudio Web (Shift Tone)** e **MongoDB Time-Series Collections**.
+API e cockpits de alta performance para ingestão, análise e monitoramento de telemetria automotiva em tempo real (RPM, velocidade, pressão de turbo, temperatura de óleo, marcha, potência, torque e aceleração), utilizando **Python 3**, **Flask**, **Streaming SSE** e **Síntese de Áudio Web (Shift Tone)**. O MongoDB é opcional: o modo padrão permite acompanhar os dados ao vivo sem banco de dados.
 
 Suporta simulação nativa de motor (Golf R 2.0 TSI Stage 2) e **integração direta via UDP com Forza Horizon 4 / 5**.
 Além do cockpit padrão em `/dashboard`, há um painel alternativo responsivo inspirado em clusters de corrida FuelTech, disponível em `/dashboard/ft600`.
+
+## Capturas dos painéis
+
+### Dashboard principal
+
+![Dashboard principal funcionando com dados do simulador em armazenamento local](docs/dashboard-preview.png)
+
+### Painel FT600
+
+![Painel FT600 funcionando com dados de telemetria em armazenamento local](docs/ft600-preview.png)
+
+> **Status do projeto:** por enquanto, a aplicação é executada localmente e ainda não está hospedada nem pronta para ser exposta como serviço público. O `run.py` inicia o servidor de desenvolvimento do Flask, e as rotas da API não têm autenticação. Não exponha esse servidor diretamente à internet. O modo padrão mantém até 5.000 leituras recentes apenas na memória; os dados são apagados ao reiniciar a aplicação. O MongoDB é opcional e pode ser ativado para persistir as leituras.
 
 ---
 
@@ -27,16 +39,18 @@ Além do cockpit padrão em `/dashboard`, há um painel alternativo responsivo i
   │  └── In-Memory Broadcast Queue                         │
   └──────────────┬────────────────────────┬────────────────┘
                  │                        │
-      Streaming SSE (Instantâneo)         │ Persistência Assíncrona
+      Streaming SSE (Instantâneo)         │ Persistência opcional
                  ▼                        ▼
   ┌──────────────────────────────┐ ┌──────────────────────────────┐
-  │       Cockpits Web           │ │   MongoDB Atlas (Cloud)      │
+  │       Cockpits Web           │ │ MongoDB opcional             │
   │   - Dashboard padrão         │ │ - Time-Series Collection     │
   │   - Painel FT600 responsivo  │ │ - Granularity: seconds       │
   │   - RPM, TPS e Shift Lights  │ │ - Compactação Temporal BSON  │
   │   - Força G, torque e turbo  │ └──────────────────────────────┘
   └──────────────────────────────┘
 ```
+
+*A persistência no MongoDB é opcional; sem ela, a telemetria recente fica somente em memória.*
 
 ---
 
@@ -47,17 +61,17 @@ TelemetrySaas/
 │
 ├── app/
 │   ├── __init__.py               # Application Factory (create_app), handlers de erro globais
-│   ├── config.py                 # Configurações de ambientes (Dev, Prod, Test) e MongoDB
+│   ├── config.py                 # Configurações de ambientes (Dev, Prod, Test) e armazenamento
 │   │
 │   ├── controllers/              # Endpoints HTTP da Aplicação (Flask Blueprints)
-│   │   ├── health_ctrl.py        # GET / e GET /api/v1/health (ping do MongoDB)
+│   │   ├── health_ctrl.py        # GET / e GET /api/v1/health
 │   │   ├── ingest_ctrl.py        # POST /api/v1/telemetry, GET /stream, /latest, /history, /stats
 │   │   └── dashboard_ctrl.py     # GET /dashboard e /dashboard/ft600
 │   │
 │   ├── services/
 │   │   └── telemetry_svc.py      # Validação física de sensores, Pub/Sub em memória para streaming
 │   │
-│   ├── repositories/
+│   ├── repositories/             # Persistência opcional no MongoDB
 │   │   ├── mongo_client.py       # Gerenciador resiliente de conexão MongoDB com lazy-connect
 │   │   └── telemetry_repo.py     # Criação de Time-Series nativas e agregações analíticas
 │   │
@@ -73,8 +87,7 @@ TelemetrySaas/
 │   ├── test_health.py            # Testes de disponibilidade e resiliência
 │   └── test_telemetry.py         # Testes de ingestão unitária, batch, streaming e regras de negócio
 │
-├── .env                          # Variáveis de ambiente locais (URI do MongoDB Atlas, etc.)
-├── .env.example                  # Modelo de variáveis de ambiente
+├── .env.example                  # Modelo das variáveis de ambiente (o .env local não é versionado)
 ├── requirements.txt              # Dependências do projeto (Flask, pymongo, requests, pytest)
 ├── run.py                        # Ponto de entrada do servidor de desenvolvimento
 └── README.md
@@ -119,6 +132,12 @@ O bridge atual envia RPM, velocidade, pressão de turbo, temperatura de óleo (v
 ---
 
 ## 🚀 Como Executar
+
+### Armazenamento de telemetria
+
+Por padrão, a aplicação usa armazenamento **somente em memória**: não é necessário instalar ou iniciar MongoDB para acompanhar o painel ao vivo. O servidor mantém até 5.000 leituras recentes para o painel principal, histórico e estatísticas; elas são descartadas quando o processo é reiniciado.
+
+Para habilitar persistência no MongoDB, configure `TELEMETRY_STORAGE=mongodb` e preencha `MONGO_URI`, `MONGO_DB_NAME` e `MONGO_COLLECTION_NAME` no arquivo `.env`. Sem essa opção, nenhuma conexão com o MongoDB é iniciada.
 
 ### 1. Iniciar o Servidor Flask
 No PowerShell dentro do diretório do projeto:
@@ -168,10 +187,10 @@ Em um segundo terminal, rode:
 
 | Método | Rota | Descrição |
 | :---: | :--- | :--- |
-| `GET` | `/` | Metadados do SaaS e links rápidos. |
+| `GET` | `/` | Metadados da API e links rápidos. |
 | `GET` | `/dashboard` | Cockpit padrão com gauges, gráficos e áudio. |
 | `GET` | `/dashboard/ft600` | Cockpit alternativo responsivo inspirado em clusters de corrida FT600. |
-| `GET` | `/api/v1/health` | Health check da aplicação e ping de integridade do MongoDB Atlas. |
+| `GET` | `/api/v1/health` | Health check da aplicação e, quando habilitado, do MongoDB. |
 | `POST` | `/api/v1/telemetry` | Ingestão de telemetria individual ou em lote (batch de até 1.000 itens). |
 | `GET` | `/api/v1/telemetry/stream` | Stream SSE em tempo real com latência zero (`text/event-stream`). |
 | `GET` | `/api/v1/telemetry/latest` | Retorna o pacote mais recente (`?vehicle_id=...`). |
@@ -221,7 +240,7 @@ O projeto conta com testes para contratos HTTP, validações de limites físicos
 ## 🛠️ Tecnologias Utilizadas
 
 * **Backend:** Python 3.12, Flask 3, PyMongo 4, Requests, Python-Dotenv
-* **Banco de Dados:** MongoDB Atlas (Time-Series Collections)
+* **Armazenamento:** Memória volátil por padrão; persistência opcional em MongoDB (Time-Series Collections)
 * **Frontend:** HTML5, Vanilla CSS (Dark Automotive Theme, Glassmorphism, CSS Transitions), Vanilla JS (Web Audio API, SSE EventSource, Canvas API)
 * **Qualidade de Software:** Pytest 8, Arquitetura em Camadas (Application Factory, Blueprints, Services, Repositories)
 * **Integrações:** Sockets UDP nativos para telemetria de simuladores e jogos (Forza Data Out)

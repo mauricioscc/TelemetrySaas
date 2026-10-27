@@ -11,7 +11,8 @@ class Config:
     DEBUG = False
     TESTING = False
     PORT = int(os.getenv("PORT", 5000))
-    HOST = os.getenv("HOST", "0.0.0.0")
+    HOST = os.getenv("HOST", "127.0.0.1")
+    TELEMETRY_STORAGE = os.getenv("TELEMETRY_STORAGE", "memory").strip().lower()
 
     # Configurações do MongoDB
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
@@ -30,6 +31,7 @@ class TestingConfig(Config):
     TESTING = True
     DEBUG = True
     ENV = "testing"
+    TELEMETRY_STORAGE = "memory"
     MONGO_DB_NAME = f"{Config.MONGO_DB_NAME}_test"
 
 

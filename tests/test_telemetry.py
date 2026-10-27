@@ -158,6 +158,47 @@ def test_ingest_with_max_rpm_and_gear(client):
         assert response.status_code == 201
 
 
+def test_memory_storage_supports_dashboard_without_mongodb(client, monkeypatch):
+    from app.services.telemetry_svc import telemetry_service
+
+    def fail_if_repository_is_used(*args, **kwargs):
+        raise AssertionError("O armazenamento em memória não deve consultar o MongoDB.")
+
+    monkeypatch.setattr(telemetry_service._repo, "get_latest", fail_if_repository_is_used)
+    monkeypatch.setattr(telemetry_service._repo, "get_history", fail_if_repository_is_used)
+    monkeypatch.setattr(telemetry_service._repo, "get_distinct_vehicles", fail_if_repository_is_used)
+    monkeypatch.setattr(telemetry_service._repo, "get_vehicle_stats", fail_if_repository_is_used)
+
+    payload = {
+        "metadata": {
+            "vehicle_id": "MEMORY-ONLY-TEST",
+            "model": "Test Vehicle",
+            "ecu_profile": "Stock",
+        },
+        "measurements": {
+            "rpm": 4500,
+            "speed_kmh": 100,
+            "boost_pressure_bar": 0.5,
+            "oil_temp_c": 90,
+            "power_hp": 200,
+            "torque_nm": 300,
+        },
+    }
+
+    response = client.post("/api/v1/telemetry", json=payload)
+    assert response.status_code == 201
+
+    latest = client.get("/api/v1/telemetry/latest?vehicle_id=MEMORY-ONLY-TEST")
+    history = client.get("/api/v1/telemetry/history?vehicle_id=MEMORY-ONLY-TEST")
+    vehicles = client.get("/api/v1/telemetry/vehicles")
+    stats = client.get("/api/v1/telemetry/stats/MEMORY-ONLY-TEST")
+
+    assert latest.get_json()["data"]["measurements"]["rpm"] == 4500
+    assert history.get_json()["count"] == 1
+    assert any(vehicle["vehicle_id"] == "MEMORY-ONLY-TEST" for vehicle in vehicles.get_json()["vehicles"])
+    assert stats.get_json()["stats"]["total_samples"] == 1
+
+
 def test_telemetry_stream_endpoint(app):
     """Verifica se o endpoint /api/v1/telemetry/stream expõe headers corretos de SSE e inicia o gerador."""
     with app.test_request_context("/api/v1/telemetry/stream"):

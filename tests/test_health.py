@@ -31,16 +31,33 @@ def test_health_check_without_db(client):
     assert "database" not in data
 
 
-def test_health_check_default(client):
-    """
-    Testa se o health check responde 200 mesmo se o MongoDB estiver desconectado,
-    marcando o status como degraded sem lançar exceção não tratada.
-    """
+def test_memory_mode_does_not_initialize_mongodb(monkeypatch):
+    from app import create_app
+    from app.repositories.mongo_client import mongo_client
+
+    def fail_if_database_is_initialized(*args, **kwargs):
+        raise AssertionError("O modo memória não deve inicializar MongoDB.")
+
+    monkeypatch.setattr(mongo_client, "init_app", fail_if_database_is_initialized)
+    app = create_app("testing")
+
+    assert app.config["TELEMETRY_STORAGE"] == "memory"
+
+
+def test_health_check_default(client, monkeypatch):
+    """O health check informa que o armazenamento em memória não depende do MongoDB."""
+    def fail_if_database_is_checked():
+        raise AssertionError("O health check não deve consultar MongoDB no modo memória.")
+
+    from app.repositories.mongo_client import mongo_client
+    monkeypatch.setattr(mongo_client, "check_health", fail_if_database_is_checked)
+
     response = client.get("/api/v1/health")
     assert response.status_code == 200
     data = response.get_json()
-    assert data["status"] in ("healthy", "degraded")
-    assert "database" in data
+    assert data["status"] == "healthy"
+    assert data["storage"] == "memory"
+    assert data["database"]["status"] == "disabled"
     assert "timestamp" in data
 
 

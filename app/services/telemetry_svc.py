@@ -2,9 +2,9 @@ import json
 import logging
 import queue
 import threading
-import time
+from collections import deque
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Deque, Dict, List, Optional, Union
 
 from app.repositories.telemetry_repo import telemetry_repo, TelemetryRepository
 
@@ -18,23 +18,40 @@ class TelemetryValidationError(ValueError):
 
 class TelemetryService:
     """
-    Serviço de alta frequência com persistência assíncrona em background
-    e streaming em tempo real (Pub/Sub) de latência zero.
+    Serviço de telemetria em tempo real com armazenamento opcional no MongoDB.
     """
 
     def __init__(self, repository: TelemetryRepository = telemetry_repo):
         self._repo = repository
         self._listeners: List[queue.Queue] = []
         self._lock = threading.Lock()
+        self._storage_mode = "memory"
+        self._memory_records: Deque[Dict[str, Any]] = deque(maxlen=5000)
+        self._worker_lock = threading.Lock()
+        self._worker_started = False
 
-        # Fila assíncrona para não bloquear requisições HTTP esperando o MongoDB Atlas na nuvem
         self._db_queue: queue.Queue = queue.Queue(maxsize=10000)
-        self._worker_thread = threading.Thread(target=self._db_worker, daemon=True, name="TelemetryDBWorker")
-        self._worker_thread.start()
+
+    def configure_storage(self, mode: str) -> None:
+        """Configura armazenamento em memória ou persistência no MongoDB."""
+        if mode not in ("memory", "mongodb"):
+            raise ValueError("O armazenamento deve ser 'memory' ou 'mongodb'.")
+
+        self._storage_mode = mode
+        if mode == "mongodb":
+            with self._worker_lock:
+                if not self._worker_started:
+                    worker = threading.Thread(
+                        target=self._db_worker,
+                        daemon=True,
+                        name="TelemetryDBWorker",
+                    )
+                    worker.start()
+                    self._worker_started = True
 
     def _db_worker(self) -> None:
         """
-        Thread em background que consome a fila e grava no MongoDB Atlas em lotes (batch),
+        Thread em background que consome a fila e grava no MongoDB em lotes (batch),
         garantindo que o loop de streaming no Flask responda em < 1ms sem travar.
         """
         while True:
@@ -60,7 +77,7 @@ class TelemetryService:
                     else:
                         self._repo.insert_batch(items)
                 except Exception as exc:
-                    logger.error(f"Erro no background writer do MongoDB Atlas: {exc}")
+                    logger.error(f"Erro no background writer do MongoDB: {exc}")
                 finally:
                     for _ in items:
                         self._db_queue.task_done()
@@ -112,7 +129,7 @@ class TelemetryService:
         Processa telemetria em alta frequência:
         1. Valida e sanitiza na memória (< 0.1ms)
         2. Dispara broadcast SSE imediatamente (< 0.1ms)
-        3. Enfileira para gravação assíncrona no MongoDB Atlas (0ms de espera!)
+        3. Guarda os dados em memória ou enfileira a persistência no MongoDB.
         """
         if not data:
             raise TelemetryValidationError("O payload de telemetria não pode ser vazio.")
@@ -127,12 +144,8 @@ class TelemetryService:
             if sanitized_batch:
                 self._broadcast(sanitized_batch[-1])
 
-            # Enfileira para gravação assíncrona no Atlas
             for item in sanitized_batch:
-                try:
-                    self._db_queue.put_nowait(item)
-                except queue.Full:
-                    pass
+                self._store_record(item)
 
             return {
                 "status": "success",
@@ -146,11 +159,7 @@ class TelemetryService:
             # Broadcast imediato no mesmo tick
             self._broadcast(sanitized)
 
-            # Enfileira para persistência no Atlas sem bloquear a requisição
-            try:
-                self._db_queue.put_nowait(sanitized)
-            except queue.Full:
-                pass
+            self._store_record(sanitized)
 
             return {
                 "status": "success",
@@ -164,22 +173,93 @@ class TelemetryService:
 
     def get_latest_telemetry(self, vehicle_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Busca o registro mais recente para monitoramento ao vivo."""
+        if self._storage_mode == "memory":
+            records = self._get_memory_records(vehicle_id)
+            return self._serialize_memory_record(records[-1]) if records else None
         return self._repo.get_latest(vehicle_id)
 
     def get_history(self, vehicle_id: Optional[str] = None, limit: int = 60) -> List[Dict[str, Any]]:
         """Busca histórico ordenado para gráficos."""
         limit = min(max(1, limit), 500)
+        if self._storage_mode == "memory":
+            records = self._get_memory_records(vehicle_id)
+            return [self._serialize_memory_record(record) for record in records[-limit:]]
         return self._repo.get_history(vehicle_id, limit=limit)
 
     def list_vehicles(self) -> List[Dict[str, Any]]:
         """Lista os veículos ativos que enviaram telemetria."""
+        if self._storage_mode == "memory":
+            vehicles: Dict[str, Dict[str, Any]] = {}
+            for record in self._get_memory_records():
+                metadata = record["metadata"]
+                vehicle_id = metadata["vehicle_id"]
+                vehicle = vehicles.setdefault(vehicle_id, {
+                    "vehicle_id": vehicle_id,
+                    "model": metadata["model"],
+                    "ecu_profile": metadata["ecu_profile"],
+                    "last_seen": record["timestamp"].isoformat(),
+                    "total_pings": 0,
+                })
+                vehicle["model"] = metadata["model"]
+                vehicle["ecu_profile"] = metadata["ecu_profile"]
+                vehicle["last_seen"] = record["timestamp"].isoformat()
+                vehicle["total_pings"] += 1
+            return sorted(vehicles.values(), key=lambda vehicle: vehicle["last_seen"], reverse=True)
         return self._repo.get_distinct_vehicles()
 
     def get_vehicle_stats(self, vehicle_id: str) -> Dict[str, Any]:
         """Retorna resumo analítico de performance do veículo."""
         if not vehicle_id:
             raise TelemetryValidationError("vehicle_id é obrigatório para consultar estatísticas.")
+        if self._storage_mode == "memory":
+            records = self._get_memory_records(vehicle_id)
+            if not records:
+                return {}
+
+            measurements = [record["measurements"] for record in records]
+            speeds = [item["speed_kmh"] for item in measurements]
+            return {
+                "vehicle_id": vehicle_id,
+                "max_rpm": max(item["rpm"] for item in measurements),
+                "max_speed_kmh": round(max(speeds), 1),
+                "max_boost_bar": round(max(item["boost_pressure_bar"] for item in measurements), 2),
+                "max_oil_temp_c": round(max(item["oil_temp_c"] for item in measurements), 1),
+                "max_power_hp": round(max(item.get("power_hp", 0) for item in measurements), 0),
+                "max_torque_nm": round(max(item.get("torque_nm", 0) for item in measurements), 1),
+                "avg_speed_kmh": round(sum(speeds) / len(speeds), 1),
+                "total_samples": len(records),
+            }
         return self._repo.get_vehicle_stats(vehicle_id)
+
+    def _store_record(self, record: Dict[str, Any]) -> None:
+        if self._storage_mode == "mongodb":
+            try:
+                self._db_queue.put_nowait(record)
+            except queue.Full:
+                logger.error("Fila de persistência MongoDB cheia; telemetria descartada.")
+            return
+
+        with self._lock:
+            self._memory_records.append(record)
+
+    def _get_memory_records(self, vehicle_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        with self._lock:
+            records = list(self._memory_records)
+        if vehicle_id:
+            records = [
+                record for record in records
+                if record["metadata"]["vehicle_id"] == vehicle_id
+            ]
+        records.sort(key=lambda record: record["timestamp"])
+        return records
+
+    @staticmethod
+    def _serialize_memory_record(record: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "timestamp": record["timestamp"].isoformat(),
+            "metadata": record["metadata"],
+            "measurements": record["measurements"],
+        }
 
     def _validate_and_sanitize_record(
         self, record: Any, index: Optional[int] = None
